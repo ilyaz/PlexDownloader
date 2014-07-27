@@ -33,7 +33,7 @@ password=password (your myplex password)
 
 [tvshows]
 
-plexid = 2 (your tv show section plex id)
+plexid = 4 (your tv show section plex id)
 
 tvfile = tvshows.txt (this is the list of the tv show you want to sync. one tv show per line. Enter exactly how you see it in plex.)
 
@@ -43,7 +43,7 @@ tvlocation = /Users/plexdl/Downloads/TV Shows/ (download location for your synce
 
 [movies]
 
-plexid = 1 (your movie section plex id)
+plexid = 5 (your movie section plex id)
 
 moviefile = movies.txt (this is the list of wanted movies you want to sync. One movie per line. Format: Movie (year) EX: Avatar (2009)
 
