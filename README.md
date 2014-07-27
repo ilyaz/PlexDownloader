@@ -1,6 +1,6 @@
 PlexDownloader
 ==============
-Configuring PlexDownload:
+Configuring PlexDownloader:
 
 1)Edit the user.ini with information that is relevant to your install.
 
