@@ -9,6 +9,7 @@ Configuring Plex Download:
 [general]
 
 sleeptime = time in seconds that you want to wait between loops. Default is 600 seconds (10 minutes).
+
 plexurl = enter your IP here make sure to have no "/" at the end of the ip. For example http://127.0.0.1:32400
 
 [myplex]
