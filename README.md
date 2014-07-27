@@ -1,8 +1,12 @@
 PlexDownloader
 ==============
-Configuring Plex Download:
+Configuring PlexDownload:
+
 1)Edit the user.ini with information that is relevant to your install.
+
 2)If you are downloading/syncing remotely you must enter your myplex information and enable myplex.
+
+3)Start by running "python plexdl.py".
 
 [User.Ini Options]
 
