@@ -8,6 +8,13 @@ Configuring PlexDownload:
 
 3)Start by running "python plexdl.py".
 
+You can find your movie and tv show section ID by visiting your Plex Web and going to the category you want to sync.
+
+http://192.168.3.5/web/index.html#!/server/.../section/2
+
+The ID you are looking for is the number at the end which in the above example is 2.
+
+
 [User.Ini Options]
 
 [general]
