@@ -19,7 +19,7 @@ The ID you are looking for is the number at the end which in the above example i
 
 [general]
 
-sleeptime = time in seconds that you want to wait between loops. Default is 600 seconds (10 minutes).
+sleeptime = time in seconds that you want to wait between checking for new content. Default is 600 seconds (10 minutes).
 
 plexurl = enter your IP here make sure to have no "/" at the end of the ip. For example http://127.0.0.1:32400
 
