@@ -183,31 +183,7 @@ def tvShowSearch():
 								eplink=url+downloadkey							
 							epDownloader(tvtitle,seasonindex,episodeindex,downloadcontainer,eplink,episodetitle)
 					elif (tvtype=="recent"):
-						if (totalseasons==1 and "Season" in seasontitle):
-							seasonkey= season.attributes['key'].value
-							seasonindex= season.attributes['index'].value
-							if myplexstatus=="enable":
-								episodehttp=url+seasonkey+"?X-Plex-Token="+plextoken
-							else:
-								episodehttp=url+seasonkey
-							episodeweb=urllib.urlopen(episodehttp)
-							xmlepisode=minidom.parse(episodeweb)
-							episodelist=xmlepisode.getElementsByTagName('Video')
-							for episode in episodelist:
-								episodekey = episode.attributes['key'].value
-								episodeindex = episode.attributes['index'].value
-								episodetitle = episode.attributes['title'].value
-								partindex = episode.getElementsByTagName('Part')
-								for partitem in partindex:
-									downloadkey = partitem.attributes['key'].value
-									downloadcontainer = partitem.attributes['container'].value
-								print tvtitle + " Season "+ seasonindex + " Episode " + episodeindex
-								if myplexstatus=="enable":
-									eplink=url+downloadkey+"?X-Plex-Token="+plextoken
-								else:
-									eplink=url+downloadkey	
-								epDownloader(tvtitle,seasonindex,episodeindex,downloadcontainer,eplink,episodetitle)
-						elif (totalseasons>1 and seasontitle=="Season "+str(latestseason)):
+						if (seasontitle=="Season "+str(latestseason)):
 							seasonkey= season.attributes['key'].value
 							seasonindex= season.attributes['index'].value
 							if myplexstatus=="enable":
