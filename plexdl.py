@@ -51,6 +51,8 @@ movieid = parser.get('movies', 'plexid')
 movielocation = parser.get('movies', 'movielocation')
 moviefile = parser.get('movies', 'moviefile')
 
+socket.setdefaulttimeout(30)
+
 plextoken=""
 
 print "PlexDownloader - v0.01"
@@ -90,25 +92,36 @@ def myPlexSignin(username,password):
 
 def epDownloader(show,season,episode,container,link,eptitle):
 	epfile=urllib.URLopener()
+	show = re.sub(r'[\\/:"*?<>|"]+',"",show)
+	eptitle = re.sub(r'[\\/:"*?<>|"]+',"",eptitle)
 	if not os.path.exists(tvlocation+show):
 		os.makedirs(tvlocation+show)
 
 	print "Downloading "+ show + " Season "+season+" Episode "+episode+"..."
 
 	if not os.path.isfile(tvlocation+show+"/"+show+" - "+season+"x"+episode+" - "+eptitle+"."+container):
-		epfile.retrieve(link,tvlocation+show+"/"+show+" - "+season+"x"+episode+" - "+eptitle+"."+container)
+		try:
+			epfile.retrieve(link,tvlocation+show+"/"+show+" - "+season+"x"+episode+" - "+eptitle+"."+container)
+		except:
+			print "Something went wrong downloading this episode... Deleting and retrying on next episode scan!"
+			os.remove(tvlocation+show+"/"+show+" - "+season+"x"+episode+" - "+eptitle+"."+container)
 	else:
 		print "File already exists. Skipping episode."
 
 def mvDownloader(moviefull,container,link):
 	mvfile=urllib.URLopener()
+	moviefull = re.sub(r'[\\/:"*?<>|"]+',"",moviefull)
 	if not os.path.exists(movielocation+moviefull):
 		os.makedirs(movielocation+moviefull)
 
 	print "Downloading "+ moviefull + "..."
 
 	if not os.path.isfile(movielocation+moviefull+"/"+moviefull+"."+container):
-		mvfile.retrieve(link,movielocation+moviefull+"/"+moviefull+"."+container)
+		try:
+			mvfile.retrieve(link,movielocation+moviefull+"/"+moviefull+"."+container)
+		except:
+			print "Something went wrong downloading this movie... Deleting and retrying on next movie scan!"
+			os.remove(movielocation+moviefull+"/"+moviefull+"."+container)			
 	else:
 		print "File already exists. Skipping movie."
 
