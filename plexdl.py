@@ -153,6 +153,8 @@ def tvShowSearch():
 			xmlseason = minidom.parse(seasonweb)
 			seasonlist = xmlseason.getElementsByTagName('Directory')
 			totalseasons =  len(seasonlist)
+			latestseason = seasonlist[totalseasons-1].attributes['index'].value
+
 			for season in seasonlist:
 				seasontitle= season.attributes['title'].value
 				if (seasontitle != "All episodes"):
@@ -181,7 +183,7 @@ def tvShowSearch():
 								eplink=url+downloadkey							
 							epDownloader(tvtitle,seasonindex,episodeindex,downloadcontainer,eplink,episodetitle)
 					elif (tvtype=="recent"):
-						if (totalseasons==1 and seasontitle=="Season 1"):
+						if (totalseasons==1 and "Season" in seasontitle):
 							seasonkey= season.attributes['key'].value
 							seasonindex= season.attributes['index'].value
 							if myplexstatus=="enable":
@@ -205,7 +207,7 @@ def tvShowSearch():
 								else:
 									eplink=url+downloadkey	
 								epDownloader(tvtitle,seasonindex,episodeindex,downloadcontainer,eplink,episodetitle)
-						elif (totalseasons>1 and seasontitle=="Season "+str(totalseasons-1)):
+						elif (totalseasons>1 and seasontitle=="Season "+str(latestseason)):
 							seasonkey= season.attributes['key'].value
 							seasonindex= season.attributes['index'].value
 							if myplexstatus=="enable":
