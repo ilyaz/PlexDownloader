@@ -8,11 +8,14 @@ Configuring PlexDownloader:
 
 3)Start by running "python plexdl.py".
 
-You can find your movie and tv show section ID by visiting your Plex Web and going to the category you want to sync.
+You can find your movie/music/tv/photo section ID by visiting your Plex Web and going to the category you want to sync.
 
 http://192.168.3.5/web/index.html#!/server/.../section/2
 
 The ID you are looking for is the number at the end which in the above example is 2.
+
+You can also find your content section ID by visiting:
+http://localhost:32400/library/sections/
 
 
 [User.Ini Options]
@@ -33,6 +36,8 @@ password=password (your myplex password)
 
 [tvshows]
 
+active = enable|disable (Activates the category so it will be scanned)
+
 plexid = 4 (your tv show section plex id)
 
 tvfile = tvshows.txt (this is the list of the tv show you want to sync. one tv show per line. Enter exactly how you see it in plex.)
@@ -41,13 +46,44 @@ tvtype = recent|all (recent will download on the most current season. all will d
 
 tvlocation = /Users/plexdl/Downloads/TV Shows/ (download location for your synced tvshows EX: C:/Downloads/TV Shows/)
 
+fullsync = enable|disable [Will download everything it finds, will follow tvtype so you can sync the most recent of every show]
+
 [movies]
+
+active = enable|disable (Activates the category so it will be scanned)
 
 plexid = 5 (your movie section plex id)
 
 moviefile = movies.txt (this is the list of wanted movies you want to sync. One movie per line. Format: Movie (year) EX: Avatar (2009)
 
 movielocation = /Users/plexdl/Downloads/Movies/ (download location for your synced movies. EX: C:/Downloads/Movies/)
+
+fullsync = enable|disable (Will download everything it finds)
+
+
+[music]
+
+active = enable|disable (Activates the category so it will be scanned)
+
+plexid = 6 (your music section plex id)
+
+musicfile = music.txt (your wanted list of music. Include only artists one per line.)
+
+musiclocation = /Users/plexdl/Downloads/Music/ (download location for your synced music)
+
+fullsync = enable|disable (will download everything it finds)
+
+[pictures]
+
+active = enable|disable (Activates the category so it will be scanned)
+
+plexid = 7 (your pictures section plex id)
+
+picturefile = pictures.txt (your wanted list of pictures. Include only albums one per line.)
+
+picturelocation = /Users/plexdl/Downloads/Pictures/ (download location for your synced pictures)
+
+fullsync = enable|disable (will download everything it finds)
 
 EXAMPLES:
 
@@ -60,3 +96,11 @@ Eureka
 [movies.txt]
 
 Avatar (2009)
+
+[music.txt]
+
+The Beatles
+
+[pictures.txt]
+
+Family Trip To France
