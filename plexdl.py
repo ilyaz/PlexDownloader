@@ -46,16 +46,33 @@ tvshowid = parser.get('tvshows', 'plexid')
 tvfile = parser.get('tvshows', 'tvfile')
 tvtype = parser.get('tvshows', 'tvtype')
 tvlocation = parser.get('tvshows', 'tvlocation')
+tvsync = parser.get('tvshows', 'fullsync')
+tvactive = parser.get('tvshows', 'active')
 
 movieid = parser.get('movies', 'plexid')
 movielocation = parser.get('movies', 'movielocation')
 moviefile = parser.get('movies', 'moviefile')
+moviesync = parser.get('movies', 'fullsync')
+movieactive = parser.get('movies', 'active')
+
+musicid = parser.get('music', 'plexid')
+musiclocation = parser.get('music', 'musiclocation')
+musicfile = parser.get('music', 'musicfile')
+musicsync = parser.get('music', 'fullsync')
+musicactive = parser.get('music', 'active')
+
+pictureid = parser.get('pictures', 'plexid')
+picturelocation = parser.get('pictures', 'picturelocation')
+picturefile = parser.get('pictures', 'picturefile')
+picturesync = parser.get('pictures', 'fullsync')
+pictureactive = parser.get('pictures', 'active')
+
 
 socket.setdefaulttimeout(30)
 
 plextoken=""
 
-print "PlexDownloader - v0.01"
+print "PlexDownloader - v0.02"
 
 def myPlexSignin(username,password):
     try:
@@ -125,6 +142,48 @@ def mvDownloader(moviefull,container,link):
 	else:
 		print "File already exists. Skipping movie."
 
+def photoDownloader(albumname,picturename,link,container):
+	photofile=urllib.URLopener()
+	albumname = re.sub(r'[\\/:"*?<>|"]+',"",albumname)
+	picturename = re.sub(r'[\\/:"*?<>|"]+',"",picturename)
+
+	if not os.path.exists(picturelocation+albumname):
+		os.makedirs(picturelocation+albumname)
+
+	print "Downloading Album: "+ albumname + " Picture: " +picturename +" ..."
+
+	if not os.path.isfile(picturelocation+albumname+"/"+picturename+"."+container):
+		try:
+			photofile.retrieve(link,picturelocation+albumname+"/"+picturename+"."+container)
+		except:
+			print "Something went wrong downloading this picture... Deleting and retrying on next picture scan!"
+			os.remove(picturelocation+albumname+"/"+picturename+"."+container)			
+	else:
+		print "File already exists. Skipping picture."
+
+
+def songDownloader(artist,cd,song,link,container):
+	musicfile=urllib.URLopener()
+	artist = re.sub(r'[\\/:"*?<>|"]+',"",artist)
+	cd = re.sub(r'[\\/:"*?<>|"]+',"",cd)
+	song = re.sub(r'[\\/:"*?<>|"]+',"",song)
+
+
+	if not os.path.exists(musiclocation+artist):
+		os.makedirs(musiclocation+artist)
+	if not os.path.exists(musiclocation+artist+"/"+cd):
+		os.makedirs(musiclocation+artist+"/"+cd)
+	print "Downloading CD: "+ cd + " Song: "+song+  "..."
+
+	if not os.path.isfile(musiclocation+artist+"/"+cd+"/"+song+"."+container):
+		try:
+			musicfile.retrieve(link,musiclocation+artist+"/"+cd+"/"+song+"."+container)
+		except:
+			print "Something went wrong downloading this song... Deleting and retrying on next music scan!"
+			os.remove(musiclocation+artist+"/"+cd+"/"+song+"."+container)			
+	else:
+		print "Song already exists. Skipping song."
+
 def tvShowSearch():
 	tvopen = open(tvfile,"r")
 	tvread = tvopen.read()
@@ -143,7 +202,7 @@ def tvShowSearch():
 	for item in itemlist:
 		tvkey = item.attributes['key'].value
 		tvtitle = item.attributes['title'].value
-		if tvtitle in tvlist:
+		if (tvtitle in tvlist) or (tvsync =="enable"):
 			print tvtitle + " Found in Wanted List"
 			if myplexstatus=="enable":
 				seasonhttp=url+tvkey+"?X-Plex-Token="+plextoken
@@ -234,7 +293,7 @@ def movieSearch():
 		movietitle = item.attributes['title'].value
 		movieyear = item.attributes['year'].value
 		moviename = movietitle + " ("+movieyear+")"
-		if moviename in movielist:
+		if (moviename in movielist) or (moviesync=="enable"):
 			print moviename
 			mediaindex = item.getElementsByTagName('Media')
 			for mediaitem in mediaindex:
@@ -250,15 +309,131 @@ def movieSearch():
 		else:
 			print moviename + " Not Found in Wanted List."
 
-while True:
+
+
+def photoSearch():
+	pictureopen = open(picturefile,"r")
+	pictureread = pictureopen.read()
+	picturelist= pictureread.split("\n")
+	pictureopen.close()
+	print str(len(picturelist)) + " Albums Found in Your Wanted List..."
+
 	if myplexstatus=="enable":
-		plextoken = myPlexSignin(myplexusername,myplexpassword)
-	if myplexstatus=="enable" and plextoken=="":
-		print "Failed to login to myPlex. Please disable myPlex or enter your correct login."
-		exit()
+		pichttp=url+"/library/sections/"+pictureid+"/all"+"?X-Plex-Token="+plextoken
+	else:
+		pichttp=url+"/library/sections/"+pictureid+"/all"
+	website = urllib.urlopen(pichttp)
+	xmldoc = minidom.parse(website)
+	itemlist = xmldoc.getElementsByTagName('Directory') 
+	print str(len(itemlist)) + " Total Albums Found"
+	for item in itemlist:
+		albumtitle = item.attributes['title'].value
+		albumkey = item.attributes['key'].value
+		#checks if album is in your wanted list or if full sync is enabled
+		if (albumtitle in picturelist) or (picturesync=="enable") :
+			if myplexstatus=="enable":
+				albumhttp=url+albumkey+"?X-Plex-Token="+plextoken
+			else:
+				albumhttp=url+albumkey
+			albumweb=urllib.urlopen(albumhttp)
+			xmlalbum=minidom.parse(albumweb)
+			picturesinalbum=xmlalbum.getElementsByTagName('Photo')
+			for pics in picturesinalbum:
+
+				pictitle= pics.attributes['title'].value
+				partalbum=pics.getElementsByTagName('Part')
+
+				piccontainer = partalbum[0].attributes['container'].value
+				pickey = partalbum[0].attributes['key'].value
+
+				if myplexstatus=="enable":
+					piclink=url+pickey+"?X-Plex-Token="+plextoken
+				else:
+					piclink=url+pickey
+				print pictitle + albumtitle
+				photoDownloader(albumtitle,pictitle,piclink,piccontainer)
+				
+		else:
+			print albumtitle + " Album Not Found in Wanted List."
+
+
+
+def musicSearch():
+	musicopen = open(musicfile,"r")
+	musicread = musicopen.read()
+	musiclist= musicread.split("\n")
+	musicopen.close()
+	print str(len(musiclist)) + " Artists Found in Your Wanted List..."
+	if myplexstatus=="enable":
+		musichttp=url+"/library/sections/"+musicid+"/all"+"?X-Plex-Token="+plextoken
+	else:
+		musichttp=url+"/library/sections/"+musicid+"/all"
+	website = urllib.urlopen(musichttp)
+	xmldoc = minidom.parse(website)
+	#Get list of artists
+	itemlist = xmldoc.getElementsByTagName('Directory') 
+	print str(len(itemlist)) + " Total Artists Found"
+	for item in itemlist:
+		musictitle = item.attributes['title'].value
+		musickey = item.attributes['key'].value
+		if (musictitle in musiclist) or (musicsync=="enable"):
+			if myplexstatus=="enable":
+				cdhttp=url+musickey+"?X-Plex-Token="+plextoken
+			else:
+				cdhttp=url+musickey
+			cdweb=urllib.urlopen(cdhttp)
+			xmlcd=minidom.parse(cdweb)
+			#get List of CDs
+			cdlist=xmlcd.getElementsByTagName('Directory')	
+			for cd in cdlist:
+				cdtitle = cd.attributes['title'].value
+				if (cdtitle != "All tracks"):
+					cdkey = cd.attributes['key'].value				
+					if myplexstatus=="enable":
+						songhttp=url+cdkey+"?X-Plex-Token="+plextoken
+					else:
+						songhttp=url+cdkey
+					songweb=urllib.urlopen(songhttp)
+					xmlsong=minidom.parse(songweb)
+					#Get List of Songs 
+					songlist=xmlsong.getElementsByTagName('Track')	
+					for song in songlist:
+						songtitle = song.attributes['title'].value
+						songrating = song.attributes['ratingKey'].value
+						if songtitle=="":
+							songtitle = songrating
+						partindex = song.getElementsByTagName('Part')						
+				
+						songfile = partindex[0].attributes['key'].value
+						songcontainer = partindex[0].attributes['container'].value
+
+						if myplexstatus=="enable":
+							songlink=url+songfile+"?X-Plex-Token="+plextoken
+						else:
+							songlink=url+songfile
+						songDownloader(musictitle,cdtitle,songtitle,songlink,songcontainer)
+				else:
+					print "Skipping all leaves."
+		else:
+			print musictitle + " Not in Wanted List"
+
+
+while True:
 	try:
-		tvShowSearch()
-		movieSearch()
+		if myplexstatus=="enable":
+			plextoken = myPlexSignin(myplexusername,myplexpassword)
+		if myplexstatus=="enable" and plextoken=="":
+			print "Failed to login to myPlex. Please disable myPlex or enter your correct login."
+			exit()
+		if tvactive=="enable":
+			tvShowSearch()
+		if movieactive=="enable":
+			movieSearch()		
+		if pictureactive=="enable":
+			photoSearch()
+		if musicactive=="enable":
+			musicSearch()
+
 		print "Plex Download completed at "+ strftime("%Y-%m-%d %H:%M:%S")
 		print "Sleeping "+str(sleepTime)+" Seconds..."
 		time.sleep(sleepTime)
