@@ -42,11 +42,13 @@ plexid = 4 (your tv show section plex id)
 
 tvfile = tvshows.txt (this is the list of the tv show you want to sync. one tv show per line. Enter exactly how you see it in plex.)
 
-tvtype = recent|all (recent will download on the most current season. all will download every season)
+tvtype = episode|recent|all (recent will download on the most current season. all will download every season)
 
 tvlocation = /Users/plexdl/Downloads/TV Shows/ (download location for your synced tvshows EX: C:/Downloads/TV Shows/)
 
 fullsync = enable|disable [Will download everything it finds, will follow tvtype so you can sync the most recent of every show]
+
+autodelete = enable|disable [Will automatically delete old episodes]
 
 [movies]
 

@@ -48,6 +48,7 @@ tvtype = parser.get('tvshows', 'tvtype')
 tvlocation = parser.get('tvshows', 'tvlocation')
 tvsync = parser.get('tvshows', 'fullsync')
 tvactive = parser.get('tvshows', 'active')
+tvdelete = parser.get('tvshows', 'autodelete')
 
 movieid = parser.get('movies', 'plexid')
 movielocation = parser.get('movies', 'movielocation')
@@ -241,6 +242,46 @@ def tvShowSearch():
 							else:
 								eplink=url+downloadkey							
 							epDownloader(tvtitle,seasonindex,episodeindex,downloadcontainer,eplink,episodetitle)
+					
+					elif (tvtype=="episode"):
+						seasonkey= season.attributes['key'].value
+						seasonindex= season.attributes['index'].value
+						if myplexstatus=="enable":
+							episodehttp=url+seasonkey+"?X-Plex-Token="+plextoken
+						else:
+							episodehttp=url+seasonkey
+						episodeweb=urllib.urlopen(episodehttp)
+						xmlepisode=minidom.parse(episodeweb)
+						episodelist=xmlepisode.getElementsByTagName('Video')
+						totalepisodes= len(episodelist)
+						latestepisode = totalepisodes
+						for episode in episodelist:
+							episodekey = episode.attributes['key'].value
+							episodeindex = episode.attributes['index'].value
+							episodetitle = episode.attributes['title'].value
+							partindex = episode.getElementsByTagName('Part')
+							for partitem in partindex:
+								downloadkey = partitem.attributes['key'].value
+								downloadcontainer = partitem.attributes['container'].value
+							print tvtitle + " Season "+ seasonindex + " Episode " + episodeindex
+							if myplexstatus=="enable":
+								eplink=url+downloadkey+"?X-Plex-Token="+plextoken
+							else:
+								eplink=url+downloadkey
+							if (episodeindex==str(latestepisode)) and (seasontitle=="Season "+str(latestseason)):
+								epDownloader(tvtitle,seasonindex,episodeindex,downloadcontainer,eplink,episodetitle)
+							elif (tvdelete=="enable"):
+								if os.path.isfile(tvlocation+tvtitle+"/"+tvtitle+" - "+seasonindex+"x"+episodeindex+" - "+episodetitle+"."+downloadcontainer):
+									try:
+										print "Deleting old episode: Season "+str(seasonindex)+" Episode "+str(episodeindex)
+										os.remove(tvlocation+tvtitle+"/"+tvtitle+" - "+seasonindex+"x"+episodeindex+" - "+episodetitle+"."+downloadcontainer)
+									except:
+										print "Could not delete old episode. Will try again on the next scan."
+								else:
+									print "Not the latest episode and no old file found so ignoring."
+							else:
+								print "Not the latest episode. Ignoring!"
+
 					elif (tvtype=="recent"):
 						if (seasontitle=="Season "+str(latestseason)):
 							seasonkey= season.attributes['key'].value
