@@ -26,6 +26,12 @@ sleeptime = time in seconds that you want to wait between checking for new conte
 
 plexurl = enter your IP here make sure to have no "/" at the end of the ip. For example http://127.0.0.1:32400
 
+[webui]
+
+status=enable|disable (web manager for sync items)
+
+port=8585 (default is 8585 but you can change to whatever port you want)
+
 [myplex]
 
 status=disable|enable (default is disable)
