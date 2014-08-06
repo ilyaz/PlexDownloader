@@ -1,0 +1,238 @@
+$def with (movielib,moviewanted,tvlib,tvwanted,musiclib,musicwanted,albumlib,albumwanted,url)
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="">
+    <meta name="author" content="">
+    <link rel="icon" href="../../favicon.ico">
+
+    <title>PlexDownloader</title>
+
+    <!-- Bootstrap core CSS -->
+    <link href="/static/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap theme -->
+    <link href="/static/bootstrap-theme.min.css" rel="stylesheet">
+
+    <!-- Custom styles for this template -->
+    <link href="/static/theme.css" rel="stylesheet">
+
+    <!-- Just for debugging purposes. Don't actually copy these 2 lines! -->
+    <!--[if lt IE 9]><script src="../../assets/js/ie8-responsive-file-warning.js"></script><![endif]-->
+    <script src="/static/ie-emulation-modes-warning.js"></script>
+
+    <!-- IE10 viewport hack for Surface/desktop Windows 8 bug -->
+    <script src="/static/ie10-viewport-bug-workaround.js"></script>
+
+    <!-- HTML5 shim and Respond.js IE8 support of HTML5 elements and media queries -->
+    <!--[if lt IE 9]>
+      <script src="https://oss.maxcdn.com/html5shiv/3.7.2/html5shiv.min.js"></script>
+      <script src="https://oss.maxcdn.com/respond/1.4.2/respond.min.js"></script>
+    <![endif]-->
+  </head>
+
+  <body role="document">
+
+    <!-- Fixed navbar -->
+    <div class="navbar navbar-default navbar-fixed-top" role="navigation">
+      <div class="container">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+            <span class="sr-only">Toggle navigation</span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="#">Plex Downloader v0.02</a>
+        </div>
+        <div class="navbar-collapse collapse">
+          <ul class="nav navbar-nav">
+            <li class="active"><a href="#">Home</a></li>
+            <li><a href="#movies">Movies</a></li>
+            <li><a href="#tv">TV</a></li>
+            <li><a href="#music">Music</a></li>
+            <li><a href="#pictures">Pictures</a></li>
+
+          </ul>
+          <ul class="nav navbar-nav navbar-right">
+            <li><a href="$url/web">MyPMS</a></li>
+            <li><a href="https://github.com/ilyaz/PlexDownloader">GitHub</a></li>
+
+            <li><a href="https://forums.plex.tv/index.php/topic/115593-beta-plex-downloader-desktop-sync/">Forums</a></li>
+          </ul>
+        </div><!--/.nav-collapse -->
+      </div>
+    </div>
+
+    <div class="container theme-showcase" role="main">
+    <div class="row">
+      <div class="col-sm-6 col-lg-3">
+          <div class="panel panel-primary">
+            <div class="panel-heading">
+              <h3 class="panel-title">Movies</h3>
+            </div>
+            <div class="panel-body">
+              $if (len(moviewanted)==0):
+                  Status: <span class="label label-danger">Inactive</span><br />
+              $else:
+                  Status: <span class="label label-success">Active</span><br />
+              Synced Movies: $len(moviewanted) <br />
+              Total Movies: $len(movielib)<br />
+            </div>
+          </div>
+          <div class="panel panel-success">
+            <div class="panel-heading">
+              <h3 class="panel-title">Synced Movies</h3>
+            </div>
+          <ul class="list-group">
+            $for movie in moviewanted:
+                $if movie != '':
+                    <li class="list-group-item">$movie <a class="btn btn-danger btn-xs" href="/delete?type=movie&content=$movie" role="button">Delete</a></span></li>
+
+          </ul>
+          </div>
+
+          <div class="panel panel-warning">
+            <div class="panel-heading">
+              <h3 class="panel-title">Movie Library</h3>
+            </div>
+          <ul class="list-group">
+            $for movie in movielib:
+                $if movie not in moviewanted:
+                    <li class="list-group-item">$movie <a class="btn btn-success btn-xs" href="/sync?type=movie&content=$movie" role="button">Sync</a></span></li>
+
+          </ul>
+          </div>
+      </div>
+      <div class="col-sm-6 col-lg-3">
+          <div class="panel panel-primary">
+            <div class="panel-heading">
+              <h3 class="panel-title">TV Shows</h3>
+            </div>
+            <div class="panel-body">
+              $if (len(tvwanted)==0):
+                  Status: <span class="label label-danger">Inactive</span><br />
+              $else:
+                  Status: <span class="label label-success">Active</span><br />
+              Synced TV Shows: $len(tvwanted) <br />
+              Total TV Shows: $len(tvlib)<br />
+            </div>
+          </div>
+          <div class="panel panel-success">
+            <div class="panel-heading">
+              <h3 class="panel-title">Synced Shows</h3>
+            </div>
+          <ul class="list-group">
+            $for tv in tvwanted:
+                $if tv != '':
+                    <li class="list-group-item">$tv <a class="btn btn-danger btn-xs" href="/delete?type=tvshow&content=$tv" role="button">Delete</a></span></li>
+
+          </ul>
+          </div>
+
+          <div class="panel panel-warning">
+            <div class="panel-heading">
+              <h3 class="panel-title">TV Library</h3>
+            </div>
+          <ul class="list-group">
+            $for tv in tvlib:
+                $if tv not in tvwanted:
+                    <li class="list-group-item">$tv <a class="btn btn-success btn-xs" href="/sync?type=tvshow&content=$tv" role="button">Sync</a></span></li>
+
+          </ul>
+          </div>
+      </div>
+      <div class="col-sm-6 col-lg-3">
+          <div class="panel panel-primary">
+            <div class="panel-heading">
+              <h3 class="panel-title">Music</h3>
+            </div>
+            <div class="panel-body">
+              $if (len(musicwanted)==0):
+                  Status: <span class="label label-danger">Inactive</span><br />
+              $else:
+                  Status: <span class="label label-success">Active</span><br />
+              Synced Music: $len(musicwanted) <br />
+              Total Music: $len(musiclib)<br />
+            </div>
+          </div>
+          <div class="panel panel-success">
+            <div class="panel-heading">
+              <h3 class="panel-title">Synced Music</h3>
+            </div>
+          <ul class="list-group">
+            $for music in musicwanted:
+                $if music != '':
+                    <li class="list-group-item">$music <a class="btn btn-danger btn-xs" href="/delete?type=music&content=$music" role="button">Delete</a></span></li>
+
+          </ul>
+          </div>
+
+          <div class="panel panel-warning">
+            <div class="panel-heading">
+              <h3 class="panel-title">Music Library</h3>
+            </div>
+          <ul class="list-group">
+            $for music in musiclib:
+                $if music not in musicwanted:
+                    <li class="list-group-item">$music <a class="btn btn-success btn-xs" href="/sync?type=music&content=$music" role="button">Sync</a></span></li>
+
+          </ul>
+          </div>
+      </div>
+      <div class="col-sm-6 col-lg-3">
+          <div class="panel panel-primary">
+            <div class="panel-heading">
+              <h3 class="panel-title">Pictures</h3>
+            </div>
+            <div class="panel-body">
+              $if (len(albumwanted)==0):
+                  Status: <span class="label label-danger">Inactive</span><br />
+              $else:
+                  Status: <span class="label label-success">Active</span><br />
+              Synced Albums: $len(albumwanted) <br />
+              Total Albums: $len(albumlib)<br />
+            </div>
+          </div>
+          <div class="panel panel-success">
+            <div class="panel-heading">
+              <h3 class="panel-title">Synced Pictures</h3>
+            </div>
+          <ul class="list-group">
+            $for picture in albumwanted:
+                $if picture != '':
+                    <li class="list-group-item">$picture <a class="btn btn-danger btn-xs" href="/delete?type=picture&content=$picture" role="button">Delete</a></span></li>
+
+          </ul>
+          </div>
+
+          <div class="panel panel-warning">
+            <div class="panel-heading">
+              <h3 class="panel-title">Pictures Library</h3>
+            </div>
+          <ul class="list-group">
+            $for picture in albumlib:
+                $if picture not in albumwanted:
+                    <li class="list-group-item">$picture <a class="btn btn-success btn-xs" href="/sync?type=picture&content=$picture" role="button">Sync</a></span></li>
+
+          </ul>
+          </div>
+      </div>
+    </div>
+
+  
+
+
+    </div> <!-- /container -->
+
+
+    <!-- Bootstrap core JavaScript
+    ================================================== -->
+    <!-- Placed at the end of the document so the pages load faster -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+    <script src="/static//bootstrap.min.js"></script>
+    <script src="/static/docs.min.js"></script>
+  </body>
+</html>
