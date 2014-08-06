@@ -34,6 +34,15 @@ from time import gmtime, strftime
 parser = SafeConfigParser()
 parser.read('user.ini')
 
+import subprocess
+
+webstatus = parser.get('webui','status')
+webport = parser.get('webui','port')
+
+if webstatus=="enable":
+	print "Starting PlexDownloader Web Manager..."
+	subprocess.Popen(["python", "webui.py", webport])
+
 sleepTime = parser.get('general', 'sleeptime')
 sleepTime = int(sleepTime)
 url = parser.get('general', 'plexurl')
