@@ -38,7 +38,6 @@ import subprocess
 
 webstatus = parser.get('webui','status')
 webport = parser.get('webui','port')
-unwatched = "enable"
 if webstatus=="enable":
 	print "Starting PlexDownloader Web Manager..."
 	subprocess.Popen(["python", "webui.py", webport])
