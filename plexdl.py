@@ -38,7 +38,7 @@ import subprocess
 
 webstatus = parser.get('webui','status')
 webport = parser.get('webui','port')
-
+unwatched = "enable"
 if webstatus=="enable":
 	print "Starting PlexDownloader Web Manager..."
 	subprocess.Popen(["python", "webui.py", webport])
@@ -58,12 +58,14 @@ tvlocation = parser.get('tvshows', 'tvlocation')
 tvsync = parser.get('tvshows', 'fullsync')
 tvactive = parser.get('tvshows', 'active')
 tvdelete = parser.get('tvshows', 'autodelete')
+tvunwatched= parser.get('tvshows','unwatched')
 
 movieid = parser.get('movies', 'plexid')
 movielocation = parser.get('movies', 'movielocation')
 moviefile = parser.get('movies', 'moviefile')
 moviesync = parser.get('movies', 'fullsync')
 movieactive = parser.get('movies', 'active')
+movieunwatched = parser.get('movies','unwatched')
 
 musicid = parser.get('music', 'plexid')
 musiclocation = parser.get('music', 'musiclocation')
@@ -85,36 +87,36 @@ plextoken=""
 print "PlexDownloader - v0.02"
 
 def myPlexSignin(username,password):
-    try:
+	try:
 
-        if username != '' and password != '':
-            print "Fetching myPlex authentication token."
-            headers={}
-            headers["Authorization"] = "Basic %s" % base64.encodestring('%s:%s' % (username, password)).replace('\n', '')
-            headers["X-Plex-Client-Identifier"] = quote(base64.encodestring(str(uuid.getnode())).replace('\n', ''))
-            headers["X-Plex-Product"] = "Plex-Downloader"
-            headers["X-Plex-Device"] = "Plex-Downloader"
-            headers["X-Plex-Device-Name"] = socket.gethostname()
-            headers["X-Plex-Platform"] = platform.system()
-            headers["X-Plex-Client-Platform"] = platform.system()
-            headers["X-Plex-Platform-Version"] = platform.version()
-            headers["X-Plex-Provides"] = "controller"
-            r = Request("https://plex.tv/users/sign_in.xml", data="", headers=headers)
-            r = urlopen(r)
+		if username != '' and password != '':
+			print "Fetching myPlex authentication token."
+			headers={}
+			headers["Authorization"] = "Basic %s" % base64.encodestring('%s:%s' % (username, password)).replace('\n', '')
+			headers["X-Plex-Client-Identifier"] = quote(base64.encodestring(str(uuid.getnode())).replace('\n', ''))
+			headers["X-Plex-Product"] = "Plex-Downloader"
+			headers["X-Plex-Device"] = "Plex-Downloader"
+			headers["X-Plex-Device-Name"] = socket.gethostname()
+			headers["X-Plex-Platform"] = platform.system()
+			headers["X-Plex-Client-Platform"] = platform.system()
+			headers["X-Plex-Platform-Version"] = platform.version()
+			headers["X-Plex-Provides"] = "controller"
+			r = Request("https://plex.tv/users/sign_in.xml", data="", headers=headers)
+			r = urlopen(r)
 
-            compiled = re.compile("<authentication-token>(.*)<\/authentication-token>", re.DOTALL)
-            authtoken = compiled.search(r.read()).group(1).strip()
-            if authtoken != None:
-                return authtoken
-                print "Successfully authenticated with myPlex!"
-            else:
-                print "Failed to login to myPlex!"
-                return authtoken
-        else:
-            authtoken = ""
+			compiled = re.compile("<authentication-token>(.*)<\/authentication-token>", re.DOTALL)
+			authtoken = compiled.search(r.read()).group(1).strip()
+			if authtoken != None:
+				return authtoken
+				print "Successfully authenticated with myPlex!"
+			else:
+				print "Failed to login to myPlex!"
+				return authtoken
+		else:
+			authtoken = ""
 
-    except Exception, e:
-        print "Failed to login to myPlex: %s" % str(e)
+	except Exception, e:
+		print "Failed to login to myPlex: %s" % str(e)
 
 
 def epDownloader(show,season,episode,container,link,eptitle):
@@ -241,6 +243,19 @@ def tvShowSearch():
 							episodekey = episode.attributes['key'].value
 							episodeindex = episode.attributes['index'].value
 							episodetitle = episode.attributes['title'].value
+							try:
+								#checks to see if episode has been viewed node is available
+								tvviewcount = episode.attributes['lastViewedAt'].value
+							except:
+								#if fails to find lastViewedAt will notify script that tv is unwatched 
+								tvviewcount = "unwatched"
+							#checks if user wants unwatched only
+							if tvunwatched=="enable":
+								if tvviewcount=="unwatched":
+									print "Episode is unwatched..."
+								else:
+									print "Episode is watched... skipping!"
+									continue
 							partindex = episode.getElementsByTagName('Part')
 							for partitem in partindex:
 								downloadkey = partitem.attributes['key'].value
@@ -268,6 +283,19 @@ def tvShowSearch():
 							episodekey = episode.attributes['key'].value
 							episodeindex = episode.attributes['index'].value
 							episodetitle = episode.attributes['title'].value
+							try:
+								#checks to see if episode has been viewed node is available
+								tvviewcount = episode.attributes['lastViewedAt'].value
+							except:
+								#if fails to find lastViewedAt will notify script that tv is unwatched 
+								tvviewcount = "unwatched"
+							#checks if user wants unwatched only
+							if tvunwatched=="enable":
+								if tvviewcount=="unwatched":
+									print "Episode is unwatched..."
+								else:
+									print "Episode is watched... skipping!"
+									continue
 							partindex = episode.getElementsByTagName('Part')
 							for partitem in partindex:
 								downloadkey = partitem.attributes['key'].value
@@ -306,6 +334,19 @@ def tvShowSearch():
 								episodekey = episode.attributes['key'].value
 								episodeindex = episode.attributes['index'].value
 								episodetitle = episode.attributes['title'].value
+								try:
+									#checks to see if episode has been viewed node is available
+									tvviewcount = episode.attributes['lastViewedAt'].value
+								except:
+									#if fails to find lastViewedAt will notify script that tv is unwatched 
+									tvviewcount = "unwatched"
+								#checks if user wants unwatched only
+								if tvunwatched=="enable":
+									if tvviewcount=="unwatched":
+										print "Episode is unwatched..."
+									else:
+										print "Episode is watched... skipping!"
+										continue
 								partindex = episode.getElementsByTagName('Part')
 								for partitem in partindex:
 									downloadkey = partitem.attributes['key'].value
@@ -341,7 +382,24 @@ def movieSearch():
 	print str(len(itemlist)) + " Total Movies Found"
 	for item in itemlist:
 		movietitle = item.attributes['title'].value
-		movieyear = item.attributes['year'].value
+		try:
+			movieyear = item.attributes['year'].value
+		except:
+			movieyear="Unknown"
+		try:
+			#checks to see if view count node is available
+			movieviewcount = item.attributes['viewCount'].value
+		except:
+			#if fails to find viewCount will notify script that it can continue 
+			movieviewcount = "unwatched"
+		#checks if user wants unwatched only
+		if movieunwatched=="enable":
+			if movieviewcount=="unwatched":
+				print movietitle + " ("+movieyear+") is unwatched..."
+			else:
+				print movietitle + " ("+movieyear+") is watched... skipping!"
+				continue
+
 		moviename = movietitle + " ("+movieyear+")"
 		if (moviename in movielist) or (moviesync=="enable"):
 			print moviename
