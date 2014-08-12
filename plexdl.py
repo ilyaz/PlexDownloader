@@ -22,6 +22,7 @@ from xml.dom import minidom
 import urllib
 import os
 import time
+import hashlib
 from ConfigParser import SafeConfigParser
 import re
 import socket
@@ -30,6 +31,8 @@ import base64
 import uuid
 import platform
 from time import gmtime, strftime
+import random
+import string
 
 parser = SafeConfigParser()
 parser.read('user.ini')
@@ -59,6 +62,18 @@ tvactive = parser.get('tvshows', 'active')
 tvdelete = parser.get('tvshows', 'autodelete')
 tvunwatched= parser.get('tvshows','unwatched')
 
+tvtranscode= parser.get('tvtranscode','active')
+tvheight = parser.get('tvtranscode','height')
+tvwidth = parser.get('tvtranscode','width')
+tvbitrate = parser.get('tvtranscode','maxbitrate')
+tvquality = parser.get('tvtranscode','videoquality')
+
+movietranscode = parser.get('movietranscode','active')
+movieheight = parser.get('movietranscode','height')
+moviewidth = parser.get('movietranscode','width')
+moviebitrate = parser.get('movietranscode','maxbitrate')
+moviequality = parser.get('movietranscode','videoquality')
+
 movieid = parser.get('movies', 'plexid')
 movielocation = parser.get('movies', 'movielocation')
 moviefile = parser.get('movies', 'moviefile')
@@ -78,12 +93,14 @@ picturefile = parser.get('pictures', 'picturefile')
 picturesync = parser.get('pictures', 'fullsync')
 pictureactive = parser.get('pictures', 'active')
 
-
-socket.setdefaulttimeout(30)
+#random_data = os.urandom(128)
+#plexsession = hashlib.md5(random_data).hexdigest()[:16]
+plexsession=str(uuid.uuid4())
+socket.setdefaulttimeout(180)
 
 plextoken=""
 
-print "PlexDownloader - v0.02"
+print "PlexDownloader - v0.03"
 
 def myPlexSignin(username,password):
 	try:
@@ -117,6 +134,75 @@ def myPlexSignin(username,password):
 	except Exception, e:
 		print "Failed to login to myPlex: %s" % str(e)
 
+def mvTranscoder(moviefull,container,link,moviemetadata):
+	container = "mp4"
+	clientuid = uuid.uuid4()
+	clientid = clientuid.hex[0:16]
+	plexproduct = "Plex-Downloader"
+	plexdevice = "Plex-Downloader"
+	plexsession = ''.join(random.choice(string.ascii_lowercase + string.digits) for _ in range(16))
+	devicename = socket.gethostname()
+	plexplatform = platform.system()
+	clientplatform = platform.system()
+	platformversion = platform.version()
+	plexprovides = "controller"
+	if myplexstatus=="enable":
+		link = url+"/video/:/transcode/universal/start?path=http%3A%2F%2F127.0.0.1%3A32400%2Flibrary%2Fmetadata%2F"+moviemetadata+"&mediaIndex=0&partIndex=0&protocol=http&offset=0.000&fastSeek=1&directPlay=0&directStream=1&videoQuality="+moviequality+"&videoResolution="+moviewidth+"x"+movieheight+"&maxVideoBitrate="+moviebitrate+"&subtitleSize=100&audioBoost=100&session="+plexsession+"&X-Plex-Client-Identifier="+clientid+"&X-Plex-Product=Plex+Web&X-Plex-Device=OSX&X-Plex-Platform=Chrome&X-Plex-Platform-Version=36.0&X-Plex-Version=2.2.3&X-Plex-Device-Name=Plex+Web+(Chrome)&X-Plex-Token="+plextoken
+		print "Transcode URL: "+link
+	else:
+		link = url+"/video/:/transcode/universal/start?path=http%3A%2F%2F127.0.0.1%3A32400%2Flibrary%2Fmetadata%2F"+moviemetadata+"&mediaIndex=0&partIndex=0&protocol=http&offset=0.000&fastSeek=1&directPlay=0&directStream=1&videoQuality="+moviequality+"&videoResolution="+moviewidth+"x"+movieheight+"&maxVideoBitrate="+moviebitrate+"&subtitleSize=100&audioBoost=100&session="+plexsession+"&X-Plex-Client-Identifier="+clientid+"&X-Plex-Product=Plex+Web&X-Plex-Device=OSX&X-Plex-Platform=Chrome&X-Plex-Platform-Version=36.0&X-Plex-Version=2.2.3&X-Plex-Device-Name=Plex+Web+(Chrome)"
+		print "Transcode URL: "+link
+	mvfile=urllib.URLopener()
+	moviefull = re.sub(r'[\\/:"*?<>|"]+',"",moviefull)
+	if not os.path.exists(movielocation+moviefull):
+		os.makedirs(movielocation+moviefull)
+
+	print "Downloading transcoded "+ moviefull + "..."
+
+	if not os.path.isfile(movielocation+moviefull+"/"+moviefull+"."+container):
+		try:
+			mvfile.retrieve(link,movielocation+moviefull+"/"+moviefull+"."+container)
+		except:
+			print "Something went wrong transcoding this movie... Deleting and retrying on next movie scan!"
+			os.remove(movielocation+moviefull+"/"+moviefull+"."+container)			
+	else:
+		print "File already exists. Skipping movie transcode."
+
+def tvTranscoder(show,season,episode,container,link,eptitle,tvmetadata):
+	container = "mp4"
+	plexproduct = "Plex-Downloader"
+	plexdevice = "Plex-Downloader"
+	devicename = socket.gethostname()
+	plexplatform = platform.system()
+	clientplatform = platform.system()
+	platformversion = platform.version()
+	plexsession = ''.join(random.choice(string.ascii_lowercase + string.digits) for _ in range(16))
+	clientuid = uuid.uuid4()
+	clientid = clientuid.hex[0:16]	
+	plexsession = "z9fja0pznf40anzd"
+	plexprovides = "controller"
+	if myplexstatus=="enable":
+		link = url+"/video/:/transcode/universal/start?path=http%3A%2F%2F127.0.0.1%3A32400%2Flibrary%2Fmetadata%2F"+tvmetadata+"&mediaIndex=0&partIndex=0&protocol=http&offset=0&fastSeek=1&directPlay=0&directStream=1&videoQuality="+tvquality+"&videoResolution="+tvwidth+"x"+tvheight+"&maxVideoBitrate="+tvbitrate+"&subtitleSize=100&audioBoost=100&session="+plexsession+"&X-Plex-Client-Identifier="+clientid+"&X-Plex-Product=Plex+Web&X-Plex-Device=OSX&X-Plex-Platform=Chrome&X-Plex-Platform-Version=36.0&X-Plex-Version=2.2.3&X-Plex-Device-Name=Plex+Web+(Chrome)&X-Plex-Token="+plextoken
+		print "Transcode URL: "+link
+	else:
+		link = url+"/video/:/transcode/universal/start?path=http%3A%2F%2F127.0.0.1%3A32400%2Flibrary%2Fmetadata%2F"+tvmetadata+"&mediaIndex=0&partIndex=0&protocol=http&offset=0&fastSeek=1&directPlay=0&directStream=1&videoQuality="+tvquality+"&videoResolution="+tvwidth+"x"+tvheight+"&maxVideoBitrate="+tvbitrate+"&subtitleSize=100&audioBoost=100&session="+plexsession+"&X-Plex-Client-Identifier="+clientid+"&X-Plex-Product=Plex+Web&X-Plex-Device=OSX&X-Plex-Platform=Chrome&X-Plex-Platform-Version=36.0&X-Plex-Version=2.2.3&X-Plex-Device-Name=Plex+Web+(Chrome)"
+		print "Transcode URL: "+link
+	epfile=urllib.URLopener()
+	show = re.sub(r'[\\/:"*?<>|"]+',"",show)
+	eptitle = re.sub(r'[\\/:"*?<>|"]+',"",eptitle)
+	if not os.path.exists(tvlocation+show):
+		os.makedirs(tvlocation+show)
+
+	print "Downloading transcoded "+ show + " Season "+season+" Episode "+episode+"..."
+
+	if not os.path.isfile(tvlocation+show+"/"+show+" - "+season+"x"+episode+" - "+eptitle+"."+container):
+		try:
+			epfile.retrieve(link,tvlocation+show+"/"+show+" - "+season+"x"+episode+" - "+eptitle+"."+container)
+		except:
+			print "Something went wrong transcoding this episode... Deleting and retrying on next episode scan!"
+			os.remove(tvlocation+show+"/"+show+" - "+season+"x"+episode+" - "+eptitle+"."+container)
+	else:
+		print "File already exists. Skipping episode transcode."
 
 def epDownloader(show,season,episode,container,link,eptitle):
 	epfile=urllib.URLopener()
@@ -242,6 +328,7 @@ def tvShowSearch():
 							episodekey = episode.attributes['key'].value
 							episodeindex = episode.attributes['index'].value
 							episodetitle = episode.attributes['title'].value
+							episoderatingkey = episode.attributes['ratingKey'].value
 							try:
 								#checks to see if episode has been viewed node is available
 								tvviewcount = episode.attributes['lastViewedAt'].value
@@ -263,8 +350,11 @@ def tvShowSearch():
 							if myplexstatus=="enable":
 								eplink=url+downloadkey+"?X-Plex-Token="+plextoken
 							else:
-								eplink=url+downloadkey							
-							epDownloader(tvtitle,seasonindex,episodeindex,downloadcontainer,eplink,episodetitle)
+								eplink=url+downloadkey
+							if tvtranscode=="enable":
+								tvTranscoder(tvtitle,seasonindex,episodeindex,downloadcontainer,eplink,episodetitle,episoderatingkey)
+							else:							
+								epDownloader(tvtitle,seasonindex,episodeindex,downloadcontainer,eplink,episodetitle)
 					
 					elif (tvtype=="episode"):
 						seasonkey= season.attributes['key'].value
@@ -282,6 +372,8 @@ def tvShowSearch():
 							episodekey = episode.attributes['key'].value
 							episodeindex = episode.attributes['index'].value
 							episodetitle = episode.attributes['title'].value
+							episoderatingkey = episode.attributes['ratingKey'].value
+
 							try:
 								#checks to see if episode has been viewed node is available
 								tvviewcount = episode.attributes['lastViewedAt'].value
@@ -305,7 +397,10 @@ def tvShowSearch():
 							else:
 								eplink=url+downloadkey
 							if (episodeindex==str(latestepisode)) and (seasontitle=="Season "+str(latestseason)):
-								epDownloader(tvtitle,seasonindex,episodeindex,downloadcontainer,eplink,episodetitle)
+								if tvtranscode=="enable":
+									tvTranscoder(tvtitle,seasonindex,episodeindex,downloadcontainer,eplink,episodetitle,episoderatingkey)
+								else:							
+									epDownloader(tvtitle,seasonindex,episodeindex,downloadcontainer,eplink,episodetitle)							
 							elif (tvdelete=="enable"):
 								if os.path.isfile(tvlocation+tvtitle+"/"+tvtitle+" - "+seasonindex+"x"+episodeindex+" - "+episodetitle+"."+downloadcontainer):
 									try:
@@ -333,6 +428,8 @@ def tvShowSearch():
 								episodekey = episode.attributes['key'].value
 								episodeindex = episode.attributes['index'].value
 								episodetitle = episode.attributes['title'].value
+								episoderatingkey = episode.attributes['ratingKey'].value
+
 								try:
 									#checks to see if episode has been viewed node is available
 									tvviewcount = episode.attributes['lastViewedAt'].value
@@ -355,7 +452,10 @@ def tvShowSearch():
 									eplink=url+downloadkey+"?X-Plex-Token="+plextoken
 								else:
 									eplink=url+downloadkey	
-								epDownloader(tvtitle,seasonindex,episodeindex,downloadcontainer,eplink,episodetitle)
+								if tvtranscode=="enable":
+									tvTranscoder(tvtitle,seasonindex,episodeindex,downloadcontainer,eplink,episodetitle,episoderatingkey)
+								else:							
+									epDownloader(tvtitle,seasonindex,episodeindex,downloadcontainer,eplink,episodetitle)
 						else:
 							print "Ignoring "+tvtitle+" Season."
 				else:
@@ -381,6 +481,8 @@ def movieSearch():
 	print str(len(itemlist)) + " Total Movies Found"
 	for item in itemlist:
 		movietitle = item.attributes['title'].value
+		moviedata = item.attributes['key'].value
+		movieratingkey = item.attributes['ratingKey'].value
 		try:
 			movieyear = item.attributes['year'].value
 		except:
@@ -412,10 +514,12 @@ def movieSearch():
 					movieurl=url+moviekey+"?X-Plex-Token="+plextoken
 				else:
 					movieurl=url+moviekey
-			mvDownloader(moviename,moviecontainer,movieurl)
+			if movietranscode=="enable":
+				mvTranscoder(moviename,moviecontainer,movieurl,movieratingkey)
+			else:
+				mvDownloader(moviename,moviecontainer,movieurl)
 		else:
 			print moviename + " Not Found in Wanted List."
-
 
 
 def photoSearch():
