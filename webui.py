@@ -112,7 +112,11 @@ def movieSearch():
 
 	for item in movielibrary:
 		moviename= item.attributes['title'].value
-		movielib.append(moviename)
+		try:
+			movieyear = item.attributes['year'].value
+		except:
+			movieyear="Unknown"
+		movielib.append(moviename+" ("+movieyear+")")
 
 musiclib = []
 musicwanted = []
