@@ -91,10 +91,11 @@ def myPlexSignin(username,password):
     except Exception, e:
         print "Failed to login to myPlex: %s" % str(e)
 
-
+movielibencoded= []
 movielib= []
 moviewanted=[]
 def movieSearch():
+	movielibencoded[:]=[]
 	movielib[:]=[]
 	moviewanted[:]=[]
 	movieopen = open(moviefile,"r")
@@ -116,6 +117,7 @@ def movieSearch():
 			movieyear = item.attributes['year'].value
 		except:
 			movieyear="Unknown"
+		movielibencoded.append(urllib.quote(moviename+" ("+movieyear+")"))
 		movielib.append(moviename+" ("+movieyear+")")
 
 musiclib = []
@@ -204,7 +206,7 @@ class index:
 		self.render = web.template.render('templates')
  
 	def GET(self):
-		return self.render.index(movielib,moviewanted,tvlib,tvwanted,musiclib,musicwanted,albumlib,albumwanted,url)
+		return self.render.index(movielib,moviewanted,movielibencoded,tvlib,tvwanted,musiclib,musicwanted,albumlib,albumwanted,url)
 
 	def POST(self):
 		data = web.data()
