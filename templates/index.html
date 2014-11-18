@@ -1,4 +1,4 @@
-$def with (movielib,moviewanted,movielibencoded,tvlib,tvwanted,musiclib,musicwanted,albumlib,albumwanted,url)
+$def with (movielib,moviewanted,movielibencoded,moviewantedencoded,tvlib,tvwanted,musiclib,musicwanted,albumlib,albumwanted,url)
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -87,9 +87,9 @@ $def with (movielib,moviewanted,movielibencoded,tvlib,tvwanted,musiclib,musicwan
               <h3 class="panel-title">Synced Movies</h3>
             </div>
           <ul class="list-group">
-            $for movie in moviewanted:
+            $for index, movie in enumerate(moviewanted):
                 $if movie != '':
-                    <li class="list-group-item">$movie <a class="btn btn-danger btn-xs" href="/delete?type=movie&content=$movie" role="button">Delete</a></span></li>
+                    <li class="list-group-item">$movie <a class="btn btn-danger btn-xs" href="/delete?type=movie&content=$moviewantedencoded[index]" role="button">Delete</a></span></li>
 
           </ul>
           </div>
