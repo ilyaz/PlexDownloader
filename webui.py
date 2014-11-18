@@ -92,10 +92,12 @@ def myPlexSignin(username,password):
         print "Failed to login to myPlex: %s" % str(e)
 
 movielibencoded= []
+moviewantedencoded= []
 movielib= []
 moviewanted=[]
 def movieSearch():
 	movielibencoded[:]=[]
+	moviewantedencoded[:]=[]
 	movielib[:]=[]
 	moviewanted[:]=[]
 	movieopen = open(moviefile,"r")
@@ -103,6 +105,9 @@ def movieSearch():
 	movielist= movieread.split("\n")
 	moviewanted.extend(movielist)
 	movieopen.close()
+	for item in moviewanted:
+		moviewantedencoded.append(urllib.quote(item))
+		
 	if myplexstatus=="enable":
 		moviehttp=url+"/library/sections/"+movieid+"/all"+"?X-Plex-Token="+plextoken
 	else:
@@ -206,7 +211,7 @@ class index:
 		self.render = web.template.render('templates')
  
 	def GET(self):
-		return self.render.index(movielib,moviewanted,movielibencoded,tvlib,tvwanted,musiclib,musicwanted,albumlib,albumwanted,url)
+		return self.render.index(movielib,moviewanted,movielibencoded,moviewantedencoded,tvlib,tvwanted,musiclib,musicwanted,albumlib,albumwanted,url)
 
 	def POST(self):
 		data = web.data()
