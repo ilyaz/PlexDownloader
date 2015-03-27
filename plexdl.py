@@ -101,7 +101,7 @@ socket.setdefaulttimeout(180)
 
 plextoken=""
 
-print "PlexDownloader - v0.03"
+print "PlexDownloader - v0.04"
 
 def myPlexSignin(username,password):
 	try:
