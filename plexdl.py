@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 # Author: Ilyaz <>
 # URL: https://github.com/ilyaz/PlexDownloader
 #
@@ -299,6 +300,8 @@ def tvShowSearch():
 	for item in itemlist:
 		tvkey = item.attributes['key'].value
 		tvtitle = item.attributes['title'].value
+		tvtitle = re.sub(r'[^\x00-\x7F]+',' ', tvtitle)
+		tvtitle = re.sub(r'\&','and', tvtitle)
 		if (tvtitle in tvlist) or (tvsync =="enable"):
 			print tvtitle + " Found in Wanted List"
 			if myplexstatus=="enable":
@@ -481,6 +484,8 @@ def movieSearch():
 	print str(len(itemlist)) + " Total Movies Found"
 	for item in itemlist:
 		movietitle = item.attributes['title'].value
+		movietitle = re.sub(r'[^\x00-\x7F]+',' ', movietitle)
+		movietitle = re.sub(r'\&','and', movietitle)
 		moviedata = item.attributes['key'].value
 		movieratingkey = item.attributes['ratingKey'].value
 		try:
@@ -539,6 +544,8 @@ def photoSearch():
 	print str(len(itemlist)) + " Total Albums Found"
 	for item in itemlist:
 		albumtitle = item.attributes['title'].value
+		albumtitle = re.sub(r'[^\x00-\x7F]+',' ', albumtitle)
+		albumtitle = re.sub(r'\&','and', albumtitle)
 		albumkey = item.attributes['key'].value
 		#checks if album is in your wanted list or if full sync is enabled
 		if (albumtitle in picturelist) or (picturesync=="enable") :
@@ -586,6 +593,8 @@ def musicSearch():
 	print str(len(itemlist)) + " Total Artists Found"
 	for item in itemlist:
 		musictitle = item.attributes['title'].value
+		musictitle = re.sub(r'[^\x00-\x7F]+',' ', musictitle)
+		musictitle = re.sub(r'\&','and', musictitle)
 		musickey = item.attributes['key'].value
 		if (musictitle in musiclist) or (musicsync=="enable"):
 			if myplexstatus=="enable":
@@ -648,8 +657,8 @@ while True:
 		print "Plex Download completed at "+ strftime("%Y-%m-%d %H:%M:%S")
 		print "Sleeping "+str(sleepTime)+" Seconds..."
 		time.sleep(sleepTime)
-	except: 
-		print "Something went wrong"
+	except Exception,e: 
+		print "Something went wrong: " + str(e)
 		print "Plex Download failed at "+ strftime("%Y-%m-%d %H:%M:%S")
 		print "Retrying in "+str(sleepTime)+" Seconds..."
 		time.sleep(sleepTime)

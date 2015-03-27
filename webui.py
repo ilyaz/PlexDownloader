@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import web
 import web
 from xml.dom import minidom
@@ -112,6 +113,8 @@ def movieSearch():
 
 	for item in movielibrary:
 		moviename= item.attributes['title'].value
+		moviename = re.sub(r'[^\x00-\x7F]+',' ', moviename)
+		moviename = re.sub(r'\&','and', moviename)
 		try:
 			movieyear = item.attributes['year'].value
 		except:
@@ -138,6 +141,8 @@ def musicSearch():
 	itemlist = xmldoc.getElementsByTagName('Directory') 
 	for item in itemlist:
 		artistname= item.attributes['title'].value
+		artistname = re.sub(r'[^\x00-\x7F]+',' ', artistname)
+		artistname = re.sub(r'\&','and', artistname)
 		musiclib.append(artistname)
 
 albumlib=[]
@@ -160,6 +165,8 @@ def photoSearch():
 	itemlist = xmldoc.getElementsByTagName('Directory') 
 	for item in itemlist:
 		albumtitle = item.attributes['title'].value
+		albumtitle = re.sub(r'[^\x00-\x7F]+',' ', albumtitle)
+		albumtitle = re.sub(r'\&','and', albumtitle)		
 		albumlib.append(albumtitle)
 
 tvlib=[]
@@ -182,6 +189,8 @@ def tvShowSearch():
 	itemlist = xmldoc.getElementsByTagName('Directory') 
 	for item in itemlist:
 		tvtitle = item.attributes['title'].value
+		tvtitle = re.sub(r'[^\x00-\x7F]+',' ', tvtitle)
+		tvtitle = re.sub(r'\&','and', tvtitle)
 		tvlib.append(tvtitle)
 
 if myplexstatus=="enable":
