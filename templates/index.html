@@ -89,7 +89,7 @@ $def with (movielib,moviewanted,tvlib,tvwanted,musiclib,musicwanted,albumlib,alb
           <ul class="list-group">
             $for movie in moviewanted:
                 $if movie != '':
-                    <li class="list-group-item">$movie <a class="btn btn-danger btn-xs" href="/delete?type=movie&content=$movie" role="button">Delete</a></span></li>
+                    <li class="list-group-item">$movie <BR /> <a class="btn btn-danger btn-xs" href="/delete?type=movie&content=$movie" role="button">Delete</a>  <a class="btn btn-primary btn-xs" href="http://www.traileraddict.com/search/$movie" role="button">Trailer</a>  <a class="btn btn-info btn-xs" href="http://www.imdb.com/find?ref_=nv_sr_fn&q=$movie&s=all" role="button">IMDB</a>  <a class="btn btn-warning btn-xs" href="https://www.themoviedb.org/search?query=$movie" role="button">TMDB</a></span></li>
 
           </ul>
           </div>
@@ -101,7 +101,7 @@ $def with (movielib,moviewanted,tvlib,tvwanted,musiclib,musicwanted,albumlib,alb
           <ul class="list-group">
             $for movie in movielib:
                 $if movie not in moviewanted:
-                    <li class="list-group-item">$movie <a class="btn btn-success btn-xs" href="/sync?type=movie&content=$movie" role="button">Sync</a></span></li>
+                    <li class="list-group-item">$movie <BR /> <a class="btn btn-success btn-xs" href="/sync?type=movie&content=$movie" role="button">Sync</a>  <a class="btn btn-primary btn-xs" href="http://www.traileraddict.com/search/$movie" role="button">Trailer</a>  <a class="btn btn-info btn-xs" href="http://www.imdb.com/find?ref_=nv_sr_fn&q=$movie&s=all" role="button">IMDB</a>  <a class="btn btn-warning btn-xs" href="https://www.themoviedb.org/search?query=$movie" role="button">TMDB</a></span></li>
 
           </ul>
           </div>
@@ -127,7 +127,7 @@ $def with (movielib,moviewanted,tvlib,tvwanted,musiclib,musicwanted,albumlib,alb
           <ul class="list-group">
             $for tv in tvwanted:
                 $if tv != '':
-                    <li class="list-group-item">$tv <a class="btn btn-danger btn-xs" href="/delete?type=tvshow&content=$tv" role="button">Delete</a></span></li>
+                    <li class="list-group-item">$tv <BR /> <a class="btn btn-danger btn-xs" href="/delete?type=tvshow&content=$tv" role="button">Delete</a>  <a class="btn btn-primary btn-xs" href="http://trakt.tv/search?utf8=%E2%9C%93&query=$tv" role="button">Trakt</a>  <a class="btn btn-info btn-xs" href="http://www.imdb.com/find?ref_=nv_sr_fn&q=$tv&s=all" role="button">IMDB</a>  <a class="btn btn-warning btn-xs" href="http://thetvdb.com/?string=$tv&searchseriesid=&tab=listseries&function=Search" role="button">TVDB</a></span></li>
 
           </ul>
           </div>
@@ -139,7 +139,7 @@ $def with (movielib,moviewanted,tvlib,tvwanted,musiclib,musicwanted,albumlib,alb
           <ul class="list-group">
             $for tv in tvlib:
                 $if tv not in tvwanted:
-                    <li class="list-group-item">$tv <a class="btn btn-success btn-xs" href="/sync?type=tvshow&content=$tv" role="button">Sync</a></span></li>
+                    <li class="list-group-item">$tv <BR /> <a class="btn btn-success btn-xs" href="/sync?type=tvshow&content=$tv" role="button">Sync</a>  <a class="btn btn-primary btn-xs" href="http://trakt.tv/search?utf8=%E2%9C%93&query=$tv" role="button">Trakt</a>  <a class="btn btn-info btn-xs" href="http://www.imdb.com/find?ref_=nv_sr_fn&q=$tv&s=all" role="button">IMDB</a>  <a class="btn btn-warning btn-xs" href="http://thetvdb.com/?string=$tv&searchseriesid=&tab=listseries&function=Search" role="button">TVDB</a></span></li>
 
           </ul>
           </div>
@@ -165,7 +165,7 @@ $def with (movielib,moviewanted,tvlib,tvwanted,musiclib,musicwanted,albumlib,alb
           <ul class="list-group">
             $for music in musicwanted:
                 $if music != '':
-                    <li class="list-group-item">$music <a class="btn btn-danger btn-xs" href="/delete?type=music&content=$music" role="button">Delete</a></span></li>
+                    <li class="list-group-item">$music <BR /> <a class="btn btn-danger btn-xs" href="/delete?type=music&content=$music" role="button">Delete</a>  <a class="btn btn-primary btn-xs" href="http://www.allmusic.com/search/all/$music" role="button">AllMusic</a>  <a class="btn btn-info btn-xs" href="http://musicbrainz.org/search?query=$music&type=artist&method=indexed" role="button">MB</a>  <a class="btn btn-warning btn-xs" href="http://www.theaudiodb.com" role="button">TADB</a></span></li>
 
           </ul>
           </div>
@@ -177,7 +177,7 @@ $def with (movielib,moviewanted,tvlib,tvwanted,musiclib,musicwanted,albumlib,alb
           <ul class="list-group">
             $for music in musiclib:
                 $if music not in musicwanted:
-                    <li class="list-group-item">$music <a class="btn btn-success btn-xs" href="/sync?type=music&content=$music" role="button">Sync</a></span></li>
+                    <li class="list-group-item">$music <BR /> <a class="btn btn-success btn-xs" href="/sync?type=music&content=$music" role="button">Sync</a>  <a class="btn btn-primary btn-xs" href="http://www.allmusic.com/search/all/$music" role="button">AllMusic</a>  <a class="btn btn-info btn-xs" href="http://musicbrainz.org/search?query=$music&type=artist&method=indexed" role="button">MusicBrainz</a>  <a class="btn btn-warning btn-xs" href="http://www.theaudiodb.com" role="button">TADB</a></span></li>
 
           </ul>
           </div>
@@ -203,7 +203,7 @@ $def with (movielib,moviewanted,tvlib,tvwanted,musiclib,musicwanted,albumlib,alb
           <ul class="list-group">
             $for picture in albumwanted:
                 $if picture != '':
-                    <li class="list-group-item">$picture <a class="btn btn-danger btn-xs" href="/delete?type=picture&content=$picture" role="button">Delete</a></span></li>
+                    <li class="list-group-item">$picture <BR /> <a class="btn btn-danger btn-xs" href="/delete?type=picture&content=$picture" role="button">Delete</a>  <a class="btn btn-primary btn-xs" href="http://www.facebook.com" role="button">FB</a>  <a class="btn btn-info btn-xs" href="http://twitter.com" role="button">Tweet</a>  <a class="btn btn-warning btn-xs" href="http://www.instagram.com" role="button">IG</a></span></li>
 
           </ul>
           </div>
@@ -215,7 +215,7 @@ $def with (movielib,moviewanted,tvlib,tvwanted,musiclib,musicwanted,albumlib,alb
           <ul class="list-group">
             $for picture in albumlib:
                 $if picture not in albumwanted:
-                    <li class="list-group-item">$picture <a class="btn btn-success btn-xs" href="/sync?type=picture&content=$picture" role="button">Sync</a></span></li>
+                    <li class="list-group-item">$picture <BR /> <a class="btn btn-success btn-xs" href="/sync?type=picture&content=$picture" role="button">Sync</a>  <a class="btn btn-primary btn-xs" href="http://www.facebook.com" role="button">FB</a>  <a class="btn btn-info btn-xs" href="http://twitter.com" role="button">Tweet</a>  <a class="btn btn-warning btn-xs" href="http://www.instagram.com" role="button">IG</a></span></li>
 
           </ul>
           </div>
