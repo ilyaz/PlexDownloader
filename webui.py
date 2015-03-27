@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import web
-import web
 from xml.dom import minidom
 import urllib
 import os
@@ -13,6 +12,8 @@ import base64
 import uuid
 import platform
 from time import gmtime, strftime
+import shutil
+
 
 parser = SafeConfigParser()
 parser.read('user.ini')
@@ -32,24 +33,30 @@ tvlocation = parser.get('tvshows', 'tvlocation')
 tvsync = parser.get('tvshows', 'fullsync')
 tvactive = parser.get('tvshows', 'active')
 tvdelete = parser.get('tvshows', 'autodelete')
+tvunsync = parser.get('tvshows', 'deletefiles')
+
 
 movieid = parser.get('movies', 'plexid')
 movielocation = parser.get('movies', 'movielocation')
 moviefile = parser.get('movies', 'moviefile')
 moviesync = parser.get('movies', 'fullsync')
 movieactive = parser.get('movies', 'active')
+movieunsync = parser.get('movies', 'deletefiles')
 
 musicid = parser.get('music', 'plexid')
 musiclocation = parser.get('music', 'musiclocation')
 musicfile = parser.get('music', 'musicfile')
 musicsync = parser.get('music', 'fullsync')
 musicactive = parser.get('music', 'active')
+musicunsync = parser.get('music', 'deletefiles')
+
 
 pictureid = parser.get('pictures', 'plexid')
 picturelocation = parser.get('pictures', 'picturelocation')
 picturefile = parser.get('pictures', 'picturefile')
 picturesync = parser.get('pictures', 'fullsync')
 pictureactive = parser.get('pictures', 'active')
+pictureunsync = parser.get('pictures', 'deletefiles')
 
 
 socket.setdefaulttimeout(30)
@@ -267,6 +274,14 @@ class delete:
 			for item in tvlist:
 				tvwrite = tvopen.write(item+"\n")
 			tvopen.close()
+			if tvunsync == "enable":
+                            try:
+                                shutil.rmtree(tvlocation + content)
+                                print "Successfully deleted " + str(content)+ " from filesystem."
+                            except:
+                                print "Unable to delete tv show from filesystem. Check Permissions."
+                        elif tvunsync == "disable":
+                            print "Successfully removed from sync queue. Not deleting from filesystem due to settings."
 			tvShowSearch()
 			raise web.seeother('/')
 		elif contype=="movie":
@@ -282,6 +297,14 @@ class delete:
 			for item in movielist:
 				moviewrite = movieopen.write(item+"\n")
 			movieopen.close()
+			if movieunsync == "enable":
+                            try:
+                                shutil.rmtree(movielocation + content)
+                                print "Successfully deleted " + str(content)+ " from filesystem."
+                            except:
+                                print "Unable to delete movie from filesystem. Check Permissions."
+                        elif movieunsync == "disable":
+                            print "Successfully removed from sync queue. Not deleting from filesystem due to settings."
 			movieSearch()
 			raise web.seeother('/')
 		elif contype=="music":
@@ -297,6 +320,14 @@ class delete:
 			for item in musiclist:
 				musicwrite = musicopen.write(item+"\n")
 			musicopen.close()
+			if musicunsync == "enable":
+                            try:
+                                shutil.rmtree(musiclocation + content)
+                                print "Successfully deleted " + str(content)+ " from filesystem."
+                            except:
+                                print "Unable to delete music from filesystem. Check Permissions."
+                        elif musicunsync == "disable":
+                            print "Successfully removed from sync queue. Not deleting from filesystem due to settings."
 			musicSearch()
 			raise web.seeother('/')
 		elif contype=="picture":
@@ -312,6 +343,14 @@ class delete:
 			for item in picturelist:
 				picturewrite = pictureopen.write(item+"\n")
 			pictureopen.close()
+			if pictureunsync == "enable":
+                            try:
+                                shutil.rmtree(picturelocation + content)
+                                print "Successfully deleted " + str(content)+ " from filesystem."
+                            except:
+                                print "Unable to delete pictures from filesystem. Check Permissions."
+                        elif pictureunsync == "disable":
+                            print "Successfully removed from sync queue. Not deleting from filesystem due to settings."
 			photoSearch()
 			raise web.seeother('/')
 
