@@ -287,7 +287,7 @@ def tvShowSearch():
 	tvread = tvopen.read()
 	tvlist= tvread.split("\n")
 	tvopen.close()
-	print str(len(tvlist)) + " TV Shows Found in Your Wanted List..."
+	print str(len(tvlist)-1) + " TV Shows Found in Your Wanted List..."
 	if myplexstatus=="enable":
 		tvhttp=url+"/library/sections/"+tvshowid+"/all"+"?X-Plex-Token="+plextoken
 	else:
@@ -472,7 +472,7 @@ def movieSearch():
 	movieread = movieopen.read()
 	movielist= movieread.split("\n")
 	movieopen.close()
-	print str(len(movielist)) + " Movies Found in Your Wanted List..."
+	print str(len(movielist)-1) + " Movies Found in Your Wanted List..."
 
 	if myplexstatus=="enable":
 		moviehttp=url+"/library/sections/"+movieid+"/all"+"?X-Plex-Token="+plextoken
@@ -532,7 +532,7 @@ def photoSearch():
 	pictureread = pictureopen.read()
 	picturelist= pictureread.split("\n")
 	pictureopen.close()
-	print str(len(picturelist)) + " Albums Found in Your Wanted List..."
+	print str(len(picturelist)-1) + " Albums Found in Your Wanted List..."
 
 	if myplexstatus=="enable":
 		pichttp=url+"/library/sections/"+pictureid+"/all"+"?X-Plex-Token="+plextoken
@@ -581,7 +581,7 @@ def musicSearch():
 	musicread = musicopen.read()
 	musiclist= musicread.split("\n")
 	musicopen.close()
-	print str(len(musiclist)) + " Artists Found in Your Wanted List..."
+	print str(len(musiclist)-1) + " Artists Found in Your Wanted List..."
 	if myplexstatus=="enable":
 		musichttp=url+"/library/sections/"+musicid+"/all"+"?X-Plex-Token="+plextoken
 	else:

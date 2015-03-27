@@ -78,7 +78,7 @@ $def with (movielib,moviewanted,tvlib,tvwanted,musiclib,musicwanted,albumlib,alb
                   Status: <span class="label label-danger">Inactive</span><br />
               $else:
                   Status: <span class="label label-success">Active</span><br />
-              Synced Movies: $len(moviewanted) <br />
+              Synced Movies: $(len(moviewanted)-1) <br />
               Total Movies: $len(movielib)<br />
             </div>
           </div>
@@ -116,7 +116,7 @@ $def with (movielib,moviewanted,tvlib,tvwanted,musiclib,musicwanted,albumlib,alb
                   Status: <span class="label label-danger">Inactive</span><br />
               $else:
                   Status: <span class="label label-success">Active</span><br />
-              Synced TV Shows: $len(tvwanted) <br />
+              Synced TV Shows: $(len(tvwanted)-1) <br />
               Total TV Shows: $len(tvlib)<br />
             </div>
           </div>
@@ -154,7 +154,7 @@ $def with (movielib,moviewanted,tvlib,tvwanted,musiclib,musicwanted,albumlib,alb
                   Status: <span class="label label-danger">Inactive</span><br />
               $else:
                   Status: <span class="label label-success">Active</span><br />
-              Synced Music: $len(musicwanted) <br />
+              Synced Music: $(len(musicwanted)-1) <br />
               Total Music: $len(musiclib)<br />
             </div>
           </div>
@@ -192,7 +192,7 @@ $def with (movielib,moviewanted,tvlib,tvwanted,musiclib,musicwanted,albumlib,alb
                   Status: <span class="label label-danger">Inactive</span><br />
               $else:
                   Status: <span class="label label-success">Active</span><br />
-              Synced Albums: $len(albumwanted) <br />
+              Synced Albums: $(len(albumwanted)-1) <br />
               Total Albums: $len(albumlib)<br />
             </div>
           </div>
