@@ -34,6 +34,7 @@ import platform
 from time import gmtime, strftime
 import random
 import string
+from myplex import myPlexSignin
 
 parser = SafeConfigParser()
 parser.read('user.ini')
@@ -45,6 +46,9 @@ webport = parser.get('webui','port')
 if webstatus=="enable":
 	print "Starting PlexDownloader Web Manager..."
 	subprocess.Popen(["python", "webui.py", webport])
+
+print "Starting Plex Scraper..."
+subprocess.Popen(["python", "scraper.py"])
 
 sleepTime = parser.get('general', 'sleeptime')
 sleepTime = int(sleepTime)
@@ -102,38 +106,6 @@ socket.setdefaulttimeout(180)
 plextoken=""
 
 print "PlexDownloader - v0.04"
-
-def myPlexSignin(username,password):
-	try:
-
-		if username != '' and password != '':
-			print "Fetching myPlex authentication token."
-			headers={}
-			headers["Authorization"] = "Basic %s" % base64.encodestring('%s:%s' % (username, password)).replace('\n', '')
-			headers["X-Plex-Client-Identifier"] = quote(base64.encodestring(str(uuid.getnode())).replace('\n', ''))
-			headers["X-Plex-Product"] = "Plex-Downloader"
-			headers["X-Plex-Device"] = "Plex-Downloader"
-			headers["X-Plex-Device-Name"] = socket.gethostname()
-			headers["X-Plex-Platform"] = platform.system()
-			headers["X-Plex-Client-Platform"] = platform.system()
-			headers["X-Plex-Platform-Version"] = platform.version()
-			headers["X-Plex-Provides"] = "controller"
-			r = Request("https://plex.tv/users/sign_in.xml", data="", headers=headers)
-			r = urlopen(r)
-
-			compiled = re.compile("<authentication-token>(.*)<\/authentication-token>", re.DOTALL)
-			authtoken = compiled.search(r.read()).group(1).strip()
-			if authtoken != None:
-				return authtoken
-				print "Successfully authenticated with myPlex!"
-			else:
-				print "Failed to login to myPlex!"
-				return authtoken
-		else:
-			authtoken = ""
-
-	except Exception, e:
-		print "Failed to login to myPlex: %s" % str(e)
 
 def mvTranscoder(moviefull,container,link,moviemetadata):
 	container = "mp4"
