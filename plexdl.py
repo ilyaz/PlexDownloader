@@ -85,6 +85,7 @@ moviefile = parser.get('movies', 'moviefile')
 moviesync = parser.get('movies', 'fullsync')
 movieactive = parser.get('movies', 'active')
 movieunwatched = parser.get('movies','unwatched')
+moviestructure = parser.get('movies','folderstructure')
 
 musicid = parser.get('music', 'plexid')
 musiclocation = parser.get('music', 'musiclocation')
@@ -195,22 +196,37 @@ def epDownloader(show,season,episode,container,link,eptitle):
 	else:
 		print "File already exists. Skipping episode."
 
-def mvDownloader(moviefull,container,link):
+def mvDownloader(moviefull,container,link,filename,foldername):
 	mvfile=urllib.URLopener()
 	moviefull = re.sub(r'[\\/:"*?<>|"]+',"",moviefull)
-	if not os.path.exists(movielocation+moviefull):
-		os.makedirs(movielocation+moviefull)
+	if moviestructure == "server":
+                if not os.path.exists(movielocation+foldername):
+                        os.makedirs(movielocation+foldername)
 
-	print "Downloading "+ moviefull + "..."
+                print "Downloading "+ moviefull + "..."
 
-	if not os.path.isfile(movielocation+moviefull+"/"+moviefull+"."+container):
-		try:
-			mvfile.retrieve(link,movielocation+moviefull+"/"+moviefull+"."+container)
-		except:
-			print "Something went wrong downloading this movie... Deleting and retrying on next movie scan!"
-			os.remove(movielocation+moviefull+"/"+moviefull+"."+container)			
-	else:
-		print "File already exists. Skipping movie."
+                if not os.path.isfile(movielocation+foldername+"/"+filename):
+                        try:
+                                mvfile.retrieve(link,movielocation+foldername+"/"+filename)
+                        except Exception,e:
+                                print "Something went wrong downloading this movie... Deleting and retrying on next movie scan!" + str(e)
+                                os.remove(movielocation+foldername+"/"+filename)			
+                else:
+                        print "File already exists. Skipping movie."
+        else:
+                if not os.path.exists(movielocation+moviefull):
+                        os.makedirs(movielocation+moviefull)
+
+                print "Downloading "+ moviefull + "..."
+
+                if not os.path.isfile(movielocation+moviefull+"/"+moviefull+"."+container):
+                        try:
+                                mvfile.retrieve(link,movielocation+moviefull+"/"+moviefull+"."+container)
+                        except:
+                                print "Something went wrong downloading this movie... Deleting and retrying on next movie scan!"
+                                os.remove(movielocation+moviefull+"/"+moviefull+"."+container)			
+                else:
+                        print "File already exists. Skipping movie."
 
 def photoDownloader(albumname,picturename,link,container):
 	photofile=urllib.URLopener()
@@ -487,6 +503,10 @@ def movieSearch():
 			partindex = item.getElementsByTagName('Part')
 			for partitem in partindex:
 				moviekey = partitem.attributes['key'].value
+				filepath = partitem.attributes['file'].value
+				filename = os.path.basename(filepath)
+				foldername = os.path.dirname(os.path.realpath(filepath))
+				foldername = os.path.basename(os.path.realpath(foldername))
 				if myplexstatus=="enable":
 					movieurl=url+moviekey+"?X-Plex-Token="+plextoken
 				else:
@@ -494,7 +514,7 @@ def movieSearch():
 			if movietranscode=="enable":
 				mvTranscoder(moviename,moviecontainer,movieurl,movieratingkey)
 			else:
-				mvDownloader(moviename,moviecontainer,movieurl)
+				mvDownloader(moviename,moviecontainer,movieurl,filename,foldername)
 		else:
 			print moviename + " Not Found in Wanted List."
 
