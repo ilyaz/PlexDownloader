@@ -14,6 +14,7 @@ import platform
 from time import gmtime, strftime
 import shutil
 from myplex import myPlexSignin
+from lib import movieSearch,tvShowSearch,photoSearch,musicSearch
 
 parser = SafeConfigParser()
 parser.read('user.ini')
@@ -64,13 +65,14 @@ socket.setdefaulttimeout(30)
 urls = (
 	'/', 'index',
 	'/sync', 'sync',
-	'/delete', 'delete'
+	'/delete', 'delete',
+        '/force', 'force'
 )
 
 
 movielib= []
 moviewanted=[]
-def movieSearch():
+def movieSearchWeb():
 	movielib[:]=[]
 	moviewanted[:]=[]
 	movieopen = open(moviefile,"r")
@@ -98,7 +100,7 @@ def movieSearch():
 
 musiclib = []
 musicwanted = []
-def musicSearch():
+def musicSearchWeb():
 	musiclib[:]=[]
 	musicwanted[:]=[]
 	musicopen = open(musicfile,"r")
@@ -122,7 +124,7 @@ def musicSearch():
 
 albumlib=[]
 albumwanted=[]
-def photoSearch():
+def photoSearchWeb():
 	albumlib[:]=[]
 	albumwanted[:]=[]
 	pictureopen = open(picturefile,"r")
@@ -146,7 +148,7 @@ def photoSearch():
 
 tvlib=[]
 tvwanted=[]
-def tvShowSearch():
+def tvShowSearchWeb():
 	tvlib[:]=[]
 	tvwanted[:]=[]
 	tvopen = open(tvfile,"r")
@@ -174,13 +176,13 @@ if myplexstatus=="enable" and plextoken=="":
 	print "Failed to login to myPlex. Please disable myPlex or enter your correct login."
 	exit()
 if tvactive=="enable":
-	tvShowSearch()
+	tvShowSearchWeb()
 if movieactive=="enable":
-	movieSearch()		
+	movieSearchWeb()		
 if pictureactive=="enable":
-	photoSearch()
+	photoSearchWeb()
 if musicactive=="enable":
-	musicSearch()
+	musicSearchWeb()
 
 
 class index:
@@ -192,7 +194,27 @@ class index:
 
 	def POST(self):
 		data = web.data()
-		return data
+		return data	
+class force:
+	def GET(self):
+		data = web.input()
+		contype = data['type']
+		if contype=="tvshow":
+                        print "Force Searching TV Shows..."
+			tvShowSearch()
+			raise web.seeother('/')
+		elif contype=="movie":
+                        print "Force Searching Movies..."
+			movieSearch()
+			raise web.seeother('/')
+		elif contype=="music":
+                        print "Force Searching Music..."
+			musicSearch()
+			raise web.seeother('/')
+		elif contype=="picture":
+                        print "Force Searching Pictures..."
+			photoSearch()
+			raise web.seeother('/')
 
 class sync:
 	def GET(self):
@@ -203,25 +225,25 @@ class sync:
 			tvopen = open(tvfile,"a")
 			tvread = tvopen.write(content+"\n")
 			tvopen.close()
-			tvShowSearch()
+			tvShowSearchWeb()
 			raise web.seeother('/')
 		elif contype=="movie":
 			movieopen = open(moviefile,"a")
 			movieread = movieopen.write(content+"\n")
 			movieopen.close()
-			movieSearch()
+			movieSearchWeb()
 			raise web.seeother('/')
 		elif contype=="music":
 			musicopen = open(musicfile,"a")
 			musicread = musicopen.write(content+"\n")
 			musicopen.close()
-			musicSearch()
+			musicSearchWeb()
 			raise web.seeother('/')
 		elif contype=="picture":
 			pictureopen = open(picturefile,"a")
 			pictureread = pictureopen.write(content+"\n")
 			pictureopen.close()
-			photoSearch()
+			photoSearchWeb()
 			raise web.seeother('/')
 
 class delete:
@@ -250,7 +272,7 @@ class delete:
                                 print "Unable to delete tv show from filesystem. Check Permissions."
                         elif tvunsync == "disable":
                             print "Successfully removed from sync queue. Not deleting from filesystem due to settings."
-			tvShowSearch()
+			tvShowSearchWeb()
 			raise web.seeother('/')
 		elif contype=="movie":
 			movieopen = open(moviefile,"r")
@@ -273,7 +295,7 @@ class delete:
                                 print "Unable to delete movie from filesystem. Check Permissions."
                         elif movieunsync == "disable":
                             print "Successfully removed from sync queue. Not deleting from filesystem due to settings."
-			movieSearch()
+			movieSearchWeb()
 			raise web.seeother('/')
 		elif contype=="music":
 			musicopen = open(musicfile,"r")
@@ -296,7 +318,7 @@ class delete:
                                 print "Unable to delete music from filesystem. Check Permissions."
                         elif musicunsync == "disable":
                             print "Successfully removed from sync queue. Not deleting from filesystem due to settings."
-			musicSearch()
+			musicSearchWeb()
 			raise web.seeother('/')
 		elif contype=="picture":
 			pictureopen = open(picturefile,"r")
@@ -319,7 +341,7 @@ class delete:
                                 print "Unable to delete pictures from filesystem. Check Permissions."
                         elif pictureunsync == "disable":
                             print "Successfully removed from sync queue. Not deleting from filesystem due to settings."
-			photoSearch()
+			photoSearchWeb()
 			raise web.seeother('/')
 
 if __name__ == "__main__":
