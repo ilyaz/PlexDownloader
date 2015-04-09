@@ -14,13 +14,21 @@ from time import gmtime, strftime
 import random
 import string
 
+parser = SafeConfigParser()
+parser.read('user.ini')
+
+myplexstatus = parser.get('myplex', 'status')
+myplexusername = parser.get('myplex', 'username')
+myplexpassword = parser.get('myplex', 'password')
+myplexshared = parser.get('myplex','shared')
+
 def myPlexSignin(username,password):
 	try:
 		if os.path.isfile('token.txt'):
 			with open('token.txt', 'r') as f:
-  				authtoken = f.readline()
-  			print "Using cached myPlex token."
-  			return authtoken
+				authtoken = f.readline()
+			print "Using cached myPlex token."
+			return authtoken
 		elif username != '' and password != '':
 			print "Fetching myPlex authentication token."
 			headers={}
@@ -35,15 +43,28 @@ def myPlexSignin(username,password):
 			headers["X-Plex-Provides"] = "controller"
 			r = Request("https://plex.tv/users/sign_in.xml", data="", headers=headers)
 			r = urlopen(r)
-
 			compiled = re.compile("<authentication-token>(.*)<\/authentication-token>", re.DOTALL)
 			authtoken = compiled.search(r.read()).group(1).strip()
 			if authtoken != None:
 				f = open('token.txt','w+')
-				f.write(authtoken) # python will convert \n to os.linesep
-				f.close() 
-				return authtoken
-				print "Successfully authenticated with myPlex!"
+				f.write(authtoken)
+				f.close()
+				if myplexshared == "enable":
+					link = "https://plex.tv/pms/system/library/sections?X-Plex-Token="+authtoken
+					f = urllib.urlopen(link)
+					serverlist = f.read()
+					tokens = re.findall("accessToken\=\"(.*?)\"", serverlist)
+					tokens =  list(set(tokens))
+					tokens.remove(authtoken)
+					authtoken = tokens[0]
+					f = open('token.txt','w+')
+					f.write(authtoken)
+					f.close()
+					return authtoken
+					print "Successfully grabbed shared myPlex Tokens!"
+				else:
+					return authtoken
+					print "Successfully authenticated with myPlex!"
 			else:
 				print "Failed to login to myPlex!"
 				return authtoken
