@@ -56,6 +56,8 @@ fullsync = enable|disable [Will download everything it finds, will follow tvtype
 
 autodelete = enable|disable [Will automatically delete old episodes]
 
+folderstructure = default|server [server uses plex server naming convention - /Season X/Show s1e1 - desc.mkv]
+
 [movies]
 
 active = enable|disable (Activates the category so it will be scanned)
