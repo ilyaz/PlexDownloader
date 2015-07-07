@@ -66,6 +66,7 @@ tvsync = parser.get('tvshows', 'fullsync')
 tvactive = parser.get('tvshows', 'active')
 tvdelete = parser.get('tvshows', 'autodelete')
 tvunwatched= parser.get('tvshows','unwatched')
+tvstructure=parser.get('tvshows','folderstructure')
 
 tvtranscode= parser.get('tvtranscode','active')
 tvheight = parser.get('tvtranscode','height')
@@ -108,10 +109,39 @@ plextoken=""
 
 print "PlexDownloader - v0.04"
 
-def mvTranscoder(moviefull,container,link,moviemetadata):
-	container = "mp4"
+
+def getDownloadURL(metadata,quality,width,height,bitrate,session,token):
 	clientuid = uuid.uuid4()
-	clientid = clientuid.hex[0:16]
+	clientid = clientuid.hex[0:16]	
+	link = (url+"/video/:/transcode/universal/start?path=http%3A%2F%2F127.0.0.1%3A32400%2Flibrary%2Fmetadata%2F"+metadata+
+		"&mediaIndex=0"+
+		"&partIndex=0"+
+		"&protocol=http"+
+		"&offset=0"+
+		"&fastSeek=1"+
+		"&directPlay=0"+
+		"&directStream=1"+
+		"&includeCodecs=1"+
+		"&videoQuality="+quality+
+		"&videoResolution="+width+"x"+height+
+		"&maxVideoBitrate="+bitrate+
+		"&subtitleSize=100"+
+		"&audioBoost=100"+
+		"&session="+session+
+		"&X-Plex-Client-Profile-Extra=add-transcode-target-audio-codec(type%3DvideoProfile%26context%3Dstreaming%26protocol%3Dhls%26audioCodec%3Daac)"+  #restrict audiocodec to aac 
+		"&X-Plex-Client-Identifier="+clientid+
+		"&X-Plex-Product=Plex Web"+
+		"&X-Plex-Device=Plex Downloader"+
+		"&X-Plex-Platform=Web"+
+		"&X-Plex-Platform-Version=43.0"+
+		"&X-Plex-Version=2.4.9"
+	)
+	if myplexstatus=="enable":
+		link = link+"&X-Plex-Token="+token
+	return link
+
+def mvTranscoder(moviefull,container,link,moviemetadata):
+	container = "mkv"
 	plexproduct = "Plex-Downloader"
 	plexdevice = "Plex-Downloader"
 	plexsession = ''.join(random.choice(string.ascii_lowercase + string.digits) for _ in range(16))
@@ -120,12 +150,16 @@ def mvTranscoder(moviefull,container,link,moviemetadata):
 	clientplatform = platform.system()
 	platformversion = platform.version()
 	plexprovides = "controller"
-	if myplexstatus=="enable":
-		link = url+"/video/:/transcode/universal/start?path=http%3A%2F%2F127.0.0.1%3A32400%2Flibrary%2Fmetadata%2F"+moviemetadata+"&mediaIndex=0&partIndex=0&protocol=http&offset=0.000&fastSeek=1&directPlay=0&directStream=1&videoQuality="+moviequality+"&videoResolution="+moviewidth+"x"+movieheight+"&maxVideoBitrate="+moviebitrate+"&subtitleSize=100&audioBoost=100&session="+plexsession+"&X-Plex-Client-Identifier="+clientid+"&X-Plex-Product=Plex+Web&X-Plex-Device=OSX&X-Plex-Platform=Chrome&X-Plex-Platform-Version=36.0&X-Plex-Version=2.2.3&X-Plex-Device-Name=Plex+Web+(Chrome)&X-Plex-Token="+plextoken
-		print "Transcode URL: "+link
-	else:
-		link = url+"/video/:/transcode/universal/start?path=http%3A%2F%2F127.0.0.1%3A32400%2Flibrary%2Fmetadata%2F"+moviemetadata+"&mediaIndex=0&partIndex=0&protocol=http&offset=0.000&fastSeek=1&directPlay=0&directStream=1&videoQuality="+moviequality+"&videoResolution="+moviewidth+"x"+movieheight+"&maxVideoBitrate="+moviebitrate+"&subtitleSize=100&audioBoost=100&session="+plexsession+"&X-Plex-Client-Identifier="+clientid+"&X-Plex-Product=Plex+Web&X-Plex-Device=OSX&X-Plex-Platform=Chrome&X-Plex-Platform-Version=36.0&X-Plex-Version=2.2.3&X-Plex-Device-Name=Plex+Web+(Chrome)"
-		print "Transcode URL: "+link
+##	if myplexstatus=="enable":
+##		link = url+"/video/:/transcode/universal/start?path=http%3A%2F%2F127.0.0.1%3A32400%2Flibrary%2Fmetadata%2F"+moviemetadata+"&mediaIndex=0&partIndex=0&protocol=http&offset=0.000&fastSeek=1&directPlay=0&directStream=1&videoQuality="+moviequality+"&videoResolution="+moviewidth+"x"+movieheight+"&maxVideoBitrate="+moviebitrate+"&subtitleSize=100&audioBoost=100&session="+plexsession+"&X-Plex-Client-Identifier="+clientid+"&X-Plex-Product=Plex+Web&X-Plex-Device=OSX&X-Plex-Platform=Chrome&X-Plex-Platform-Version=36.0&X-Plex-Version=2.2.3&X-Plex-Device-Name=Plex+Web+(Chrome)&X-Plex-Token="+plextoken
+##		print "Transcode URL: "+link
+##	else:
+##		link = url+"/video/:/transcode/universal/start?path=http%3A%2F%2F127.0.0.1%3A32400%2Flibrary%2Fmetadata%2F"+moviemetadata+"&mediaIndex=0&partIndex=0&protocol=http&offset=0.000&fastSeek=1&directPlay=0&directStream=1&videoQuality="+moviequality+"&videoResolution="+moviewidth+"x"+movieheight+"&maxVideoBitrate="+moviebitrate+"&subtitleSize=100&audioBoost=100&session="+plexsession+"&X-Plex-Client-Identifier="+clientid+"&X-Plex-Product=Plex+Web&X-Plex-Device=OSX&X-Plex-Platform=Chrome&X-Plex-Platform-Version=36.0&X-Plex-Version=2.2.3&X-Plex-Device-Name=Plex+Web+(Chrome)"
+##		print "Transcode URL: "+link
+	link = getDownloadURL(moviemetadata,moviequality,moviewidth,movieheight,moviebitrate,plexsession,plextoken)
+	print "Transcode URL: "+link
+
+
 	mvfile=urllib.URLopener()
 	moviefull = re.sub(r'[\\/:"*?<>|"]+',"",moviefull)
 	if not os.path.exists(movielocation+moviefull):
@@ -142,8 +176,14 @@ def mvTranscoder(moviefull,container,link,moviemetadata):
 	else:
 		print "File already exists. Skipping movie transcode."
 
+def getTvPath(tvlocation,show,season,episode,eptitle,container):
+	if tvstructure == "server":
+		return tvlocation+show+"/Season "+season+"/"+show+" - s"+season+"e"+episode+" - "+eptitle+"."+container
+	else:
+		return tvlocation+show+"/"+show+" - "+season+"x"+episode+" - "+eptitle+"."+container	
+
 def tvTranscoder(show,season,episode,container,link,eptitle,tvmetadata):
-	container = "mp4"
+	container = "mkv"
 	plexproduct = "Plex-Downloader"
 	plexdevice = "Plex-Downloader"
 	devicename = socket.gethostname()
@@ -151,30 +191,25 @@ def tvTranscoder(show,season,episode,container,link,eptitle,tvmetadata):
 	clientplatform = platform.system()
 	platformversion = platform.version()
 	plexsession = ''.join(random.choice(string.ascii_lowercase + string.digits) for _ in range(16))
-	clientuid = uuid.uuid4()
-	clientid = clientuid.hex[0:16]	
 	plexsession = "z9fja0pznf40anzd"
 	plexprovides = "controller"
-	if myplexstatus=="enable":
-		link = url+"/video/:/transcode/universal/start?path=http%3A%2F%2F127.0.0.1%3A32400%2Flibrary%2Fmetadata%2F"+tvmetadata+"&mediaIndex=0&partIndex=0&protocol=http&offset=0&fastSeek=1&directPlay=0&directStream=1&videoQuality="+tvquality+"&videoResolution="+tvwidth+"x"+tvheight+"&maxVideoBitrate="+tvbitrate+"&subtitleSize=100&audioBoost=100&session="+plexsession+"&X-Plex-Client-Identifier="+clientid+"&X-Plex-Product=Plex+Web&X-Plex-Device=OSX&X-Plex-Platform=Chrome&X-Plex-Platform-Version=36.0&X-Plex-Version=2.2.3&X-Plex-Device-Name=Plex+Web+(Chrome)&X-Plex-Token="+plextoken
-		print "Transcode URL: "+link
-	else:
-		link = url+"/video/:/transcode/universal/start?path=http%3A%2F%2F127.0.0.1%3A32400%2Flibrary%2Fmetadata%2F"+tvmetadata+"&mediaIndex=0&partIndex=0&protocol=http&offset=0&fastSeek=1&directPlay=0&directStream=1&videoQuality="+tvquality+"&videoResolution="+tvwidth+"x"+tvheight+"&maxVideoBitrate="+tvbitrate+"&subtitleSize=100&audioBoost=100&session="+plexsession+"&X-Plex-Client-Identifier="+clientid+"&X-Plex-Product=Plex+Web&X-Plex-Device=OSX&X-Plex-Platform=Chrome&X-Plex-Platform-Version=36.0&X-Plex-Version=2.2.3&X-Plex-Device-Name=Plex+Web+(Chrome)"
-		print "Transcode URL: "+link
+	link = getDownloadURL(tvmetadata,tvquality,tvwidth,tvheight,tvbitrate,plexsession,plextoken)
+	print "Transcode URL: "+link
 	epfile=urllib.URLopener()
 	show = re.sub(r'[\\/:"*?<>|"]+',"",show)
 	eptitle = re.sub(r'[\\/:"*?<>|"]+',"",eptitle)
-	if not os.path.exists(tvlocation+show):
-		os.makedirs(tvlocation+show)
+	filename=getTvPath(tvlocation,show,season,episode,eptitle,container)
+	if not os.path.exists(os.path.split(filename)[0]):
+		os.makedirs(os.path.split(filename)[0])
 
 	print "Downloading transcoded "+ show + " Season "+season+" Episode "+episode+"..."
 
-	if not os.path.isfile(tvlocation+show+"/"+show+" - "+season+"x"+episode+" - "+eptitle+"."+container):
+	if not os.path.isfile(filename):
 		try:
-			epfile.retrieve(link,tvlocation+show+"/"+show+" - "+season+"x"+episode+" - "+eptitle+"."+container)
+			epfile.retrieve(link,filename)
 		except:
 			print "Something went wrong transcoding this episode... Deleting and retrying on next episode scan!"
-			os.remove(tvlocation+show+"/"+show+" - "+season+"x"+episode+" - "+eptitle+"."+container)
+			os.remove(filename)
 	else:
 		print "File already exists. Skipping episode transcode."
 
@@ -182,17 +217,18 @@ def epDownloader(show,season,episode,container,link,eptitle):
 	epfile=urllib.URLopener()
 	show = re.sub(r'[\\/:"*?<>|"]+',"",show)
 	eptitle = re.sub(r'[\\/:"*?<>|"]+',"",eptitle)
-	if not os.path.exists(tvlocation+show):
-		os.makedirs(tvlocation+show)
+	filename=getTvPath(tvlocation,show,season,episode,eptitle,container)
+	if not os.path.exists(os.path.split(filename)[0]):
+		os.makedirs(os.path.split(filename)[0])
 
 	print "Downloading "+ show + " Season "+season+" Episode "+episode+"..."
 
-	if not os.path.isfile(tvlocation+show+"/"+show+" - "+season+"x"+episode+" - "+eptitle+"."+container):
+	if not os.path.isfile(filename):
 		try:
-			epfile.retrieve(link,tvlocation+show+"/"+show+" - "+season+"x"+episode+" - "+eptitle+"."+container)
+			epfile.retrieve(filename)
 		except:
 			print "Something went wrong downloading this episode... Deleting and retrying on next episode scan!"
-			os.remove(tvlocation+show+"/"+show+" - "+season+"x"+episode+" - "+eptitle+"."+container)
+			os.remove(filename)
 	else:
 		print "File already exists. Skipping episode."
 
@@ -200,33 +236,33 @@ def mvDownloader(moviefull,container,link,filename,foldername):
 	mvfile=urllib.URLopener()
 	moviefull = re.sub(r'[\\/:"*?<>|"]+',"",moviefull)
 	if moviestructure == "server":
-                if not os.path.exists(movielocation+foldername):
-                        os.makedirs(movielocation+foldername)
+			if not os.path.exists(movielocation+foldername):
+				os.makedirs(movielocation+foldername)
 
-                print "Downloading "+ moviefull + "..."
+			print "Downloading "+ moviefull + "..."
 
-                if not os.path.isfile(movielocation+foldername+"/"+filename):
-                        try:
-                                mvfile.retrieve(link,movielocation+foldername+"/"+filename)
-                        except Exception,e:
-                                print "Something went wrong downloading this movie... Deleting and retrying on next movie scan!" + str(e)
-                                os.remove(movielocation+foldername+"/"+filename)			
-                else:
-                        print "File already exists. Skipping movie."
-        else:
-                if not os.path.exists(movielocation+moviefull):
-                        os.makedirs(movielocation+moviefull)
+			if not os.path.isfile(movielocation+foldername+"/"+filename):
+					try:
+							mvfile.retrieve(link,movielocation+foldername+"/"+filename)
+					except Exception,e:
+							print "Something went wrong downloading this movie... Deleting and retrying on next movie scan!" + str(e)
+							os.remove(movielocation+foldername+"/"+filename)			
+			else:
+					print "File already exists. Skipping movie."
+	else:
+			if not os.path.exists(movielocation+moviefull):
+					os.makedirs(movielocation+moviefull)
 
-                print "Downloading "+ moviefull + "..."
+			print "Downloading "+ moviefull + "..."
 
-                if not os.path.isfile(movielocation+moviefull+"/"+moviefull+"."+container):
-                        try:
-                                mvfile.retrieve(link,movielocation+moviefull+"/"+moviefull+"."+container)
-                        except:
-                                print "Something went wrong downloading this movie... Deleting and retrying on next movie scan!"
-                                os.remove(movielocation+moviefull+"/"+moviefull+"."+container)			
-                else:
-                        print "File already exists. Skipping movie."
+			if not os.path.isfile(movielocation+moviefull+"/"+moviefull+"."+container):
+					try:
+							mvfile.retrieve(link,movielocation+moviefull+"/"+moviefull+"."+container)
+					except:
+							print "Something went wrong downloading this movie... Deleting and retrying on next movie scan!"
+							os.remove(movielocation+moviefull+"/"+moviefull+"."+container)			
+			else:
+					print "File already exists. Skipping movie."
 
 def photoDownloader(albumname,picturename,link,container):
 	photofile=urllib.URLopener()
@@ -393,10 +429,10 @@ def tvShowSearch():
 								else:							
 									epDownloader(tvtitle,seasonindex,episodeindex,downloadcontainer,eplink,episodetitle)							
 							elif (tvdelete=="enable"):
-								if os.path.isfile(tvlocation+tvtitle+"/"+tvtitle+" - "+seasonindex+"x"+episodeindex+" - "+episodetitle+"."+downloadcontainer):
+								if os.path.isfile(getTvPath(tvlocation,tvtitle,seasonindex,episodeindex,episodetitle,downloadcontainer)):
 									try:
 										print "Deleting old episode: Season "+str(seasonindex)+" Episode "+str(episodeindex)
-										os.remove(tvlocation+tvtitle+"/"+tvtitle+" - "+seasonindex+"x"+episodeindex+" - "+episodetitle+"."+downloadcontainer)
+										os.remove(getTvPath(tvlocation,tvtitle,seasonindex,episodeindex,episodetitle,downloadcontainer))
 									except:
 										print "Could not delete old episode. Will try again on the next scan."
 								else:
