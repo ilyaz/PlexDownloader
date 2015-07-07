@@ -236,27 +236,27 @@ def mvDownloader(moviefull,container,link,filename,foldername):
 		print "Downloading "+ moviefull + "..."
 
 		if not os.path.isfile(movielocation+foldername+"/"+filename):
-				try:
-						mvfile.retrieve(link,movielocation+foldername+"/"+filename)
-				except Exception,e:
-						print "Something went wrong downloading this movie... Deleting and retrying on next movie scan!" + str(e)
-						os.remove(movielocation+foldername+"/"+filename)			
+			try:
+				mvfile.retrieve(link,movielocation+foldername+"/"+filename)
+			except Exception,e:
+				print "Something went wrong downloading this movie... Deleting and retrying on next movie scan!" + str(e)
+				os.remove(movielocation+foldername+"/"+filename)			
 		else:
-				print "File already exists. Skipping movie."
+			print "File already exists. Skipping movie."
 	else:
 		if not os.path.exists(movielocation+moviefull):
-				os.makedirs(movielocation+moviefull)
+			os.makedirs(movielocation+moviefull)
 
 		print "Downloading "+ moviefull + "..."
 
 		if not os.path.isfile(movielocation+moviefull+"/"+moviefull+"."+container):
-				try:
-						mvfile.retrieve(link,movielocation+moviefull+"/"+moviefull+"."+container)
-				except:
-						print "Something went wrong downloading this movie... Deleting and retrying on next movie scan!"
-						os.remove(movielocation+moviefull+"/"+moviefull+"."+container)			
+			try:
+				mvfile.retrieve(link,movielocation+moviefull+"/"+moviefull+"."+container)
+			except:
+				print "Something went wrong downloading this movie... Deleting and retrying on next movie scan!"
+				os.remove(movielocation+moviefull+"/"+moviefull+"."+container)			
 		else:
-				print "File already exists. Skipping movie."
+			print "File already exists. Skipping movie."
 
 def photoDownloader(albumname,picturename,link,container):
 	photofile=urllib.URLopener()
