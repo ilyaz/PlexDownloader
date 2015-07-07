@@ -150,12 +150,6 @@ def mvTranscoder(moviefull,container,link,moviemetadata):
 	clientplatform = platform.system()
 	platformversion = platform.version()
 	plexprovides = "controller"
-##	if myplexstatus=="enable":
-##		link = url+"/video/:/transcode/universal/start?path=http%3A%2F%2F127.0.0.1%3A32400%2Flibrary%2Fmetadata%2F"+moviemetadata+"&mediaIndex=0&partIndex=0&protocol=http&offset=0.000&fastSeek=1&directPlay=0&directStream=1&videoQuality="+moviequality+"&videoResolution="+moviewidth+"x"+movieheight+"&maxVideoBitrate="+moviebitrate+"&subtitleSize=100&audioBoost=100&session="+plexsession+"&X-Plex-Client-Identifier="+clientid+"&X-Plex-Product=Plex+Web&X-Plex-Device=OSX&X-Plex-Platform=Chrome&X-Plex-Platform-Version=36.0&X-Plex-Version=2.2.3&X-Plex-Device-Name=Plex+Web+(Chrome)&X-Plex-Token="+plextoken
-##		print "Transcode URL: "+link
-##	else:
-##		link = url+"/video/:/transcode/universal/start?path=http%3A%2F%2F127.0.0.1%3A32400%2Flibrary%2Fmetadata%2F"+moviemetadata+"&mediaIndex=0&partIndex=0&protocol=http&offset=0.000&fastSeek=1&directPlay=0&directStream=1&videoQuality="+moviequality+"&videoResolution="+moviewidth+"x"+movieheight+"&maxVideoBitrate="+moviebitrate+"&subtitleSize=100&audioBoost=100&session="+plexsession+"&X-Plex-Client-Identifier="+clientid+"&X-Plex-Product=Plex+Web&X-Plex-Device=OSX&X-Plex-Platform=Chrome&X-Plex-Platform-Version=36.0&X-Plex-Version=2.2.3&X-Plex-Device-Name=Plex+Web+(Chrome)"
-##		print "Transcode URL: "+link
 	link = getDownloadURL(moviemetadata,moviequality,moviewidth,movieheight,moviebitrate,plexsession,plextoken)
 	print "Transcode URL: "+link
 
@@ -236,33 +230,33 @@ def mvDownloader(moviefull,container,link,filename,foldername):
 	mvfile=urllib.URLopener()
 	moviefull = re.sub(r'[\\/:"*?<>|"]+',"",moviefull)
 	if moviestructure == "server":
-			if not os.path.exists(movielocation+foldername):
-				os.makedirs(movielocation+foldername)
+		if not os.path.exists(movielocation+foldername):
+			os.makedirs(movielocation+foldername)
 
-			print "Downloading "+ moviefull + "..."
+		print "Downloading "+ moviefull + "..."
 
-			if not os.path.isfile(movielocation+foldername+"/"+filename):
-					try:
-							mvfile.retrieve(link,movielocation+foldername+"/"+filename)
-					except Exception,e:
-							print "Something went wrong downloading this movie... Deleting and retrying on next movie scan!" + str(e)
-							os.remove(movielocation+foldername+"/"+filename)			
-			else:
-					print "File already exists. Skipping movie."
+		if not os.path.isfile(movielocation+foldername+"/"+filename):
+				try:
+						mvfile.retrieve(link,movielocation+foldername+"/"+filename)
+				except Exception,e:
+						print "Something went wrong downloading this movie... Deleting and retrying on next movie scan!" + str(e)
+						os.remove(movielocation+foldername+"/"+filename)			
+		else:
+				print "File already exists. Skipping movie."
 	else:
-			if not os.path.exists(movielocation+moviefull):
-					os.makedirs(movielocation+moviefull)
+		if not os.path.exists(movielocation+moviefull):
+				os.makedirs(movielocation+moviefull)
 
-			print "Downloading "+ moviefull + "..."
+		print "Downloading "+ moviefull + "..."
 
-			if not os.path.isfile(movielocation+moviefull+"/"+moviefull+"."+container):
-					try:
-							mvfile.retrieve(link,movielocation+moviefull+"/"+moviefull+"."+container)
-					except:
-							print "Something went wrong downloading this movie... Deleting and retrying on next movie scan!"
-							os.remove(movielocation+moviefull+"/"+moviefull+"."+container)			
-			else:
-					print "File already exists. Skipping movie."
+		if not os.path.isfile(movielocation+moviefull+"/"+moviefull+"."+container):
+				try:
+						mvfile.retrieve(link,movielocation+moviefull+"/"+moviefull+"."+container)
+				except:
+						print "Something went wrong downloading this movie... Deleting and retrying on next movie scan!"
+						os.remove(movielocation+moviefull+"/"+moviefull+"."+container)			
+		else:
+				print "File already exists. Skipping movie."
 
 def photoDownloader(albumname,picturename,link,container):
 	photofile=urllib.URLopener()
