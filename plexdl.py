@@ -111,9 +111,11 @@ videoext = ['avi','mpeg','mpg','mp4','mkv']
 plexsession=str(uuid.uuid4())
 socket.setdefaulttimeout(180)
 
-debug_limitdld = False      #set to true during development to limit size of downloaded files
+debug_limitdld = True      #set to true during development to limit size of downloaded files
 debug_outputxml = False     #output relevant XML when exceptions occur
-debug_pretenddld = False    #set to true to fake downloading
+debug_pretenddld = False     #set to true to fake downloading
+debug_pretendremove = False   #set to true to fake removing files
+verbose = 0
 
 plextoken=""
 
@@ -380,7 +382,6 @@ def tvTranscoder2(show,season,episode,eptitle,plexkey,parts):
     #plexsession = "z9fja0pznf40anzd"
     for counter, part in enumerate(parts):
         link = getDownloadURL(plexkey,tvquality,tvwidth,tvheight,tvbitrate,plexsession,plextoken,counter)
-        #print "Transcode URL: "+link
         eptitle = getFilesystemSafeName(eptitle)
         if len(parts) > 1:
             print "Downloading transcoded "+ show + " Season "+season+" Episode "+episode+"... Part %d of %d" % (counter+1, len(parts))
@@ -584,21 +585,26 @@ def songDownloader(artist,cd,song,link,container):
     else:
         print "Song already exists. Skipping song."
 
+def constructUrl(key):
+    http = str(url) + str(key)
+    if myplexstatus=="enable":
+        http +="?X-Plex-Token="+plextoken
+    #print http
+    return http
+
 def tvShowSearch():
     tvopen = open(tvfile,"r")
     tvread = tvopen.read()
     tvlist= tvread.split("\n")
     tvopen.close()
     print str(len(tvlist)-1) + " TV Shows Found in Your Wanted List..."
-    if myplexstatus=="enable":
-        tvhttp=url+"/library/sections/"+tvshowid+"/all"+"?X-Plex-Token="+plextoken
-    else:
-        tvhttp=url+"/library/sections/"+tvshowid+"/all"
-
-    website = urllib.urlopen(tvhttp)
+    website = urllib.urlopen(constructUrl("/library/sections/"+tvshowid+"/all"))
     xmldoc = minidom.parse(website)
     itemlist = xmldoc.getElementsByTagName('Directory')
     print str(len(itemlist)) + " Total TV Shows Found"
+    syncedItems = 0
+    failedItems = 0
+    removedItems = 0
     for item in itemlist:
         tvkey = item.attributes['key'].value
         tvtitle = item.attributes['title'].value
@@ -607,172 +613,79 @@ def tvShowSearch():
         tvfoldername = getFilesystemSafeName(tvtitle)
         if (tvtitle in tvlist) or (tvsync =="enable"):
             print tvtitle + " Found in Wanted List"
-            if myplexstatus=="enable":
-                seasonhttp=url+tvkey+"?X-Plex-Token="+plextoken
-            else:
-                seasonhttp=url+tvkey
-            seasonweb = urllib.urlopen(seasonhttp)
+            seasonweb = urllib.urlopen(constructUrl(tvkey))
             xmlseason = minidom.parse(seasonweb)
             seasonlist = xmlseason.getElementsByTagName('Directory')
-            totalseasons =  len(seasonlist)
-            latestseason = seasonlist[totalseasons-1].attributes['index'].value
-            #if not os.path.isdir(tvlocation+tvfoldername):
-                #print "\t\t\t\t"+tvlocation+tvfoldername+" does not exist"
-            for season in seasonlist:
-                seasontitle= season.attributes['title'].value
-                if (seasontitle != "All episodes"):
-                    if (tvtype=="all"):
-                        seasonkey= season.attributes['key'].value
-                        seasonindex= season.attributes['index'].value
-                        if myplexstatus=="enable":
-                            episodehttp=url+seasonkey+"?X-Plex-Token="+plextoken
+            #construct list of episodes to sync
+            episodelist = []
+            if (tvtype=="all") or (tvtype=="episode"):    #download everything
+                for season in seasonlist:
+                    if season.hasAttribute('index'):   #skip "allSeasons"
+                        episodeweb=urllib.urlopen(constructUrl(season.attributes['key'].value))
+                        xmlepisode = minidom.parse(episodeweb)
+                        for e in xmlepisode.getElementsByTagName('Video'):
+                            e.setAttribute('seasonIndex', season.attributes['index'].value)
+                            episodelist.append(e)
+            elif (tvtype=="recent"): #download latest season
+                episodeweb=urllib.urlopen(constructUrl(seasonlist[len(seasonlist)-1].attributes['key'].value))
+                xmlepisode = minidom.parse(episodeweb)
+                for e in xmlepisode.getElementsByTagName('Video'):
+                    e.setAttribute('seasonIndex', seasonlist[len(seasonlist)-1].attributes['index'].value)
+                    episodelist.append(e)
+            for counter, episode in enumerate(episodelist):
+                try:
+                    episodekey = episode.attributes['key'].value
+                    episodeindex = episode.attributes['index'].value
+                    episodetitle = episode.attributes['title'].value
+                    seasonindex = episode.attributes['seasonIndex'].value  #hack that we added in
+                    #check if this already exists
+                    try:
+                        #checks to see if episode has been viewed node is available
+                        tvviewcount = episode.attributes['lastViewedAt'].value
+                    except Exception as e:
+                        #if fails to find lastViewedAt will notify script that tv is unwatched
+                        tvviewcount = "unwatched"
+                    #checks if user wants unwatched only
+                    if tvunwatched=="enable":
+                        if tvviewcount=="unwatched":
+                            if verbose: print "Episode is unwatched..."
                         else:
-                            episodehttp=url+seasonkey
-                        episodeweb=urllib.urlopen(episodehttp)
-                        xmlepisode=minidom.parse(episodeweb)
-                        episodelist=xmlepisode.getElementsByTagName('Video')
-                        for episode in episodelist:
-                            try:
-                                #print episode.toprettyxml(encoding='utf-8')
-                                episodekey = episode.attributes['key'].value
-                                episodeindex = episode.attributes['index'].value
-                                episodetitle = episode.attributes['title'].value
-                                #check if this already exists
+                            if verbose: print "Episode is watched... skipping!"
+                            continue
+                    parts = getMediaParts(episode)
+                    if tvtype=="episode" and (counter != len(episodelist)-1):
+                        if tvdelete=="enable":
+                            #clean-up old episodes
+                            #this logic isn't perfect.  It will not delete files that have been removed from the server.
+                            fn = tvEpisodeExists(tvfoldername,seasonindex,episodeindex,parts[0])
+                            if fn:
                                 try:
-                                    #checks to see if episode has been viewed node is available
-                                    tvviewcount = episode.attributes['lastViewedAt'].value
+                                    print "Deleting old episode: " + fn
+                                    if not debug_pretendremove: os.remove(fn)
+                                    removedItems += 1
                                 except Exception as e:
-                                    #if fails to find lastViewedAt will notify script that tv is unwatched
-                                    tvviewcount = "unwatched"
-                                #checks if user wants unwatched only
-                                if tvunwatched=="enable":
-                                    if tvviewcount=="unwatched":
-                                        print "Episode is unwatched..."
-                                    else:
-                                        print "Episode is watched... skipping!"
-                                        continue
-                                parts = getMediaParts(episode)
-                                existingfile = tvEpisodeExists(tvfoldername,seasonindex,episodeindex,parts[0])
-                                if existingfile:
-                                    print tvtitle + " Season "+ seasonindex + " Episode " + episodeindex + " exists..."
-                                    continue
-                                print tvtitle + " Season "+ seasonindex + " Episode " + episodeindex
-                                if tvtranscode=="enable":
-                                    tvTranscoder2(tvfoldername,seasonindex,episodeindex,episodetitle,episodekey,parts)
-                                else:
-                                    #epDownloader(tvfoldername,seasonindex,episodeindex,downloadcontainer,eplink,episodetitle)
-                                    pass
-                            except Exception as e:
-                                print "Error syncing episode.  Skipping..."
-                                print(traceback.format_exc())
-                                if debug_outputxml: print episode.toprettyxml(encoding='utf-8')
-
-                    elif (tvtype=="episode"):
-                        seasonkey= season.attributes['key'].value
-                        seasonindex= season.attributes['index'].value
-                        if myplexstatus=="enable":
-                            episodehttp=url+seasonkey+"?X-Plex-Token="+plextoken
-                        else:
-                            episodehttp=url+seasonkey
-                        episodeweb=urllib.urlopen(episodehttp)
-                        xmlepisode=minidom.parse(episodeweb)
-                        episodelist=xmlepisode.getElementsByTagName('Video')
-                        totalepisodes= len(episodelist)
-                        latestepisode = totalepisodes
-                        for episode in episodelist:
-                            episodekey = episode.attributes['key'].value
-                            episodeindex = episode.attributes['index'].value
-                            episodetitle = episode.attributes['title'].value
-                            episoderatingkey = episode.attributes['ratingKey'].value
-
-                            try:
-                                #checks to see if episode has been viewed node is available
-                                tvviewcount = episode.attributes['lastViewedAt'].value
-                            except Exception as e:
-                                #if fails to find lastViewedAt will notify script that tv is unwatched
-                                tvviewcount = "unwatched"
-                            #checks if user wants unwatched only
-                            if tvunwatched=="enable":
-                                if tvviewcount=="unwatched":
-                                    print "Episode is unwatched..."
-                                else:
-                                    print "Episode is watched... skipping!"
-                                    continue
-                            partindex = episode.getElementsByTagName('Part')
-                            for partitem in partindex:
-                                downloadkey = partitem.attributes['key'].value
-                                downloadcontainer = partitem.attributes['container'].value
-                            print tvtitle + " Season "+ seasonindex + " Episode " + episodeindex
-                            if myplexstatus=="enable":
-                                eplink=url+downloadkey+"?X-Plex-Token="+plextoken
-                            else:
-                                eplink=url+downloadkey
-                            if (episodeindex==str(latestepisode)) and (seasontitle=="Season "+str(latestseason)):
-                                if tvtranscode=="enable":
-                                    tvTranscoderOld(tvfoldername,seasonindex,episodeindex,downloadcontainer,eplink,episodetitle,episoderatingkey)
-                                else:
-                                    epDownloader(tvfoldername,seasonindex,episodeindex,downloadcontainer,eplink,episodetitle)
-                            elif (tvdelete=="enable"):
-                                if os.path.isfile(getTvFullFilename(tvfoldername,seasonindex,episodeindex,episodetitle,downloadcontainer)):
-                                    try:
-                                        print "Deleting old episode: Season "+str(seasonindex)+" Episode "+str(episodeindex)
-                                        os.remove(getTvFullFilename(tvfoldername,seasonindex,episodeindex,episodetitle,downloadcontainer))
-                                    except Exception as e:
-                                        print "Could not delete old episode. Will try again on the next scan."
-                                else:
-                                    print "Not the latest episode and no old file found so ignoring."
-                            else:
-                                print "Not the latest episode. Ignoring!"
-
-                    elif (tvtype=="recent"):
-                        if (seasontitle=="Season "+str(latestseason)):
-                            seasonkey= season.attributes['key'].value
-                            seasonindex= season.attributes['index'].value
-                            if myplexstatus=="enable":
-                                episodehttp=url+seasonkey+"?X-Plex-Token="+plextoken
-                            else:
-                                episodehttp=url+seasonkey
-                            episodeweb=urllib.urlopen(episodehttp)
-                            xmlepisode=minidom.parse(episodeweb)
-                            episodelist=xmlepisode.getElementsByTagName('Video')
-                            for episode in episodelist:
-                                episodekey = episode.attributes['key'].value
-                                episodeindex = episode.attributes['index'].value
-                                episodetitle = episode.attributes['title'].value
-                                episoderatingkey = episode.attributes['ratingKey'].value
-
-                                try:
-                                    #checks to see if episode has been viewed node is available
-                                    tvviewcount = episode.attributes['lastViewedAt'].value
-                                except Exception as e:
-                                    #if fails to find lastViewedAt will notify script that tv is unwatched
-                                    tvviewcount = "unwatched"
-                                #checks if user wants unwatched only
-                                if tvunwatched=="enable":
-                                    if tvviewcount=="unwatched":
-                                        print "Episode is unwatched..."
-                                    else:
-                                        print "Episode is watched... skipping!"
-                                        continue
-                                partindex = episode.getElementsByTagName('Part')
-                                for partitem in partindex:
-                                    downloadkey = partitem.attributes['key'].value
-                                    downloadcontainer = partitem.attributes['container'].value
-                                print tvtitle + " Season "+ seasonindex + " Episode " + episodeindex
-                                if myplexstatus=="enable":
-                                    eplink=url+downloadkey+"?X-Plex-Token="+plextoken
-                                else:
-                                    eplink=url+downloadkey
-                                if tvtranscode=="enable":
-                                    tvTranscoderOld(tvfoldername,seasonindex,episodeindex,downloadcontainer,eplink,episodetitle,episoderatingkey)
-                                else:
-                                    epDownloader(tvfoldername,seasonindex,episodeindex,downloadcontainer,eplink,episodetitle)
-                        else:
-                            print "Ignoring "+tvfoldername+" Season."
-                else:
-                    print "Skipping all leaves."
+                                    failedItems += 1
+                                    print "Could not delete old episode. Will try again on the next scan."
+                        continue
+                    if tvEpisodeExists(tvfoldername,seasonindex,episodeindex,parts[0]):
+                        if verbose: print tvtitle + " Season "+ seasonindex + " Episode " + episodeindex + " exists..."
+                        continue
+                    #print tvtitle + " Season "+ seasonindex + " Episode " + episodeindex
+                    if tvtranscode=="enable":
+                        tvTranscoder2(tvfoldername,seasonindex,episodeindex,episodetitle,episodekey,parts)
+                    else:
+                        #epDownloader(tvfoldername,seasonindex,episodeindex,downloadcontainer,eplink,episodetitle)
+                        pass
+                    syncedItems += 1
+                except Exception as e:
+                    failedItems += 1
+                    print "Error syncing episode.  Skipping..."
+                    print(traceback.format_exc())
+                    if debug_outputxml: print episode.toprettyxml(encoding='utf-8')
         else:
             print tvtitle + " Not Found in Wanted List."
+    if syncedItems > 0 or failedItems > 0 or removedItems > 0:
+        print "TV synch complete: {0} downloaded, {1} removed, {2} errors" % (syncedItems, removedItems, failedItems)
 
 
 def movieSearch():
@@ -786,11 +699,12 @@ def movieSearch():
         moviehttp=url+"/library/sections/"+movieid+"/all"+"?X-Plex-Token="+plextoken
     else:
         moviehttp=url+"/library/sections/"+movieid+"/all"
-    print moviehttp
     website = urllib.urlopen(moviehttp)
     xmldoc = minidom.parse(website)
     itemlist = xmldoc.getElementsByTagName('Video')
     print str(len(itemlist)) + " Total Movies Found"
+    syncedItems = 0
+    failedItems = 0
     for item in itemlist:
         movietitle = item.attributes['title'].value
         movietitle = re.sub(r'[^\x00-\x7F]+',' ', movietitle)
@@ -811,7 +725,7 @@ def movieSearch():
             if movieviewcount=="unwatched":
                 print movietitle + " ("+movieyear+") is unwatched..."
             else:
-                print movietitle + " ("+movieyear+") is watched... skipping!"
+                if verbose: print movietitle + " ("+movieyear+") is watched... skipping!"
                 continue
         moviename = movietitle + " ("+movieyear+")"
         if (moviename in movielist) or (moviesync=="enable"):
@@ -820,22 +734,23 @@ def movieSearch():
                 parts = getMediaParts(item)
                 existingfile = movieExists(moviefoldername,parts[0])
                 if existingfile:
-                    print movietitle + " ("+movieyear+") exists... skipping!"
+                    if verbose: print movietitle + " ("+movieyear+") exists... skipping!"
                     continue
                 if movietranscode=="enable":
-                    #print item.toprettyxml(encoding='utf-8')
-                    #print item.toxml('utf-16')
                     mvTranscoder2(moviefoldername,moviekey,parts)
                 else:
                     #mvDownloader(moviefoldername,moviecontainer,movieurl,filename,foldername)
                     pass
+                syncedItems += 1
             except Exception as e:
+                failedItems += 1
                 print "Error syncing " + moviename + ".  Skipping..."
                 print(traceback.format_exc())
                 if debug_outputxml: print item.toprettyxml(encoding='utf-8')
         else:
-            print moviename + " Not Found in Wanted List."
-
+            if verbose: print moviename + " Not Found in Wanted List."
+    if syncedItems > 0 or failedItems > 0:
+        print "Movie synch complete: {0} downloaded  {1} errors" % (syncedItems, failedItems)
 
 def photoSearch():
     pictureopen = open(picturefile,"r")
