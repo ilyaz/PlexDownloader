@@ -111,7 +111,7 @@ videoext = ['avi','mpeg','mpg','mp4','mkv']
 plexsession=str(uuid.uuid4())
 socket.setdefaulttimeout(180)
 
-debug_limitdld = True      #set to true during development to limit size of downloaded files
+debug_limitdld = False      #set to true during development to limit size of downloaded files
 debug_outputxml = False     #output relevant XML when exceptions occur
 debug_pretenddld = False     #set to true to fake downloading
 debug_pretendremove = False   #set to true to fake removing files
