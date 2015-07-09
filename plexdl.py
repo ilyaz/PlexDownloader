@@ -60,11 +60,11 @@ myplexstatus = parser.get('myplex', 'status')
 myplexusername = parser.get('myplex', 'username')
 myplexpassword = parser.get('myplex', 'password')
 
-musicid = parser.get('music', 'plexid')
-musiclocation = parser.get('music', 'musiclocation')
-musicfile = parser.get('music', 'musicfile')
-musicsync = parser.get('music', 'fullsync')
-musicactive = parser.get('music', 'active')
+# musicid = parser.get('music', 'plexid')
+# musiclocation = parser.get('music', 'musiclocation')
+# musicfile = parser.get('music', 'musicfile')
+# musicsync = parser.get('music', 'fullsync')
+# musicactive = parser.get('music', 'active')
 
 pictureid = parser.get('pictures', 'plexid')
 picturelocation = parser.get('pictures', 'picturelocation')
@@ -246,7 +246,7 @@ class MovieDownloader(object):
         filename=os.path.basename(filepath)
         if os.path.isdir(folder):
             for f in os.listdir(folder):
-                if f.startswith(filename):
+                if f.startswith(filename) and os.path.isfile(os.path.join(folder,f)):
                     if isValidVideoFile(f):
                         return os.path.join(folder,f)
                     else:
@@ -278,7 +278,7 @@ class MovieDownloader(object):
                 print "Downloading transcoded "+ safeitemname +"... Part %d of %d" % (counter+1, len(parts))
             else:
                 print "Downloading transcoded "+ safeitemname+"..."
-            if not retrieveVideo(link, self.fullfilepath(safeitemname,part,len(parts)),overwrite=False):
+            if not retrieveMediaFile(link, self.fullfilepath(safeitemname,part,len(parts)),overwrite=False):
                 print "Video not downloaded"
 
     def download(self,safeitemname,parts):
@@ -289,7 +289,7 @@ class MovieDownloader(object):
                 print "Downloading "+ safeitemname +"... Part %d of %d" % (counter+1, len(parts))
             else:
                 print "Downloading "+ safeitemname+"..."
-            if not retrieveVideo(link, self.fullfilepath(safeitemname,part,len(parts)),extension=ext,overwrite=False):
+            if not retrieveMediaFile(link, self.fullfilepath(safeitemname,part,len(parts)),extension=ext,overwrite=False):
                 print "Video not downloaded"
 
 
@@ -435,7 +435,7 @@ class TvDownloader(object):
             filename=os.path.basename(filepath)
             if os.path.isdir(folder):
                 for f in os.listdir(folder):
-                    if f.startswith(filename):
+                    if f.startswith(filename) and os.path.isfile(os.path.join(folder,f)):
                         if isValidVideoFile(f):
                             return os.path.join(folder,f)
                         else:
@@ -452,7 +452,7 @@ class TvDownloader(object):
             if os.path.isdir(folder):
                 for f in os.listdir(folder):
                     result = r.search(f)
-                    if result and isValidVideoFile(f):
+                    if result and os.path.isfile(os.path.join(folder,f)) and isValidVideoFile(f):
                         if episode == int(result.groups()[1]):
                             return os.path.join(folder,f)
                         if result.groups()[2]: # process s1e01-e04 files
@@ -484,22 +484,22 @@ class TvDownloader(object):
                 print "Downloading transcoded "+ safeitemname + " Season "+season+" Episode "+episode+"... Part %d of %d" % (counter+1, len(parts))
             else:
                 print "Downloading transcoded "+ safeitemname + " Season "+season+" Episode "+episode+"..."
-            if not retrieveVideo(link, self.fullfilepath(safeitemname,season,episode,eptitle,part),overwrite=False):
+            if not retrieveMediaFile(link, self.fullfilepath(safeitemname,season,episode,eptitle,part),overwrite=False):
                 print "Video file not downloaded"
 
     def download(self,safeitemname,season,episode,eptitle,plexkey,parts):
         for counter, part in enumerate(parts):
             link = constructPlexUrl(part['key'])
-            ext = os.path.splitext(part['filename'])[1][1:] #override
+            ext = os.path.splitext(part['filename'])[1][1:] #override extension
             eptitle = getFilesystemSafeName(eptitle)
             if len(parts) > 1:
                 print "Downloading "+ safeitemname + " Season "+season+" Episode "+episode+"... Part %d of %d" % (counter+1, len(parts))
             else:
                 print "Downloading "+ safeitemname + " Season "+season+" Episode "+episode+"..."
-            if not retrieveVideo(link, self.fullfilepath(safeitemname,season,episode,eptitle,part),extension=ext,overwrite=False):
+            if not retrieveMediaFile(link, self.fullfilepath(safeitemname,season,episode,eptitle,part),extension=ext,overwrite=False):
                 print "Video file not downloaded"
 
-    # def getSeasonAndEpisode(filename):
+    # def getSeasonAndEpisodeFromFilename(filename):
     #     #todo: Add in syntax below for multi-episode formats
     #     m = re.findall(r"(?ix)(?:[\s\.\-,_])(?:s)(\d{1,3})(?:e|x)(\d{1,3})", filename, re.I)   #s1e1,s1x1
     #     if not m:
@@ -541,11 +541,126 @@ class TvDownloader(object):
     #                             return os.path.join(folder,f)
     #     return None
 
+class MusicDownloader(object):
+    class NoConfig(Exception):
+        pass
+
+    def __init__(self, num):
+        cfg = "music"
+        if num > 0:
+            cfg += str(num)
+
+        if not parser.has_section(cfg):
+            raise MusicDownloader.NoConfig("No config section")
+
+        self.plexid = parser.get(cfg, 'plexid')
+        self.location = parser.get(cfg, 'musiclocation')
+        self.configfile = parser.get(cfg, 'musicfile')
+        self.sync = parser.get(cfg, 'fullsync')
+        self.active = parser.get(cfg, 'active')
+
+    def isactive(self):
+        if self.active == "enable": return True
+        return False
+
+    def search(self):
+        fp = open(self.configfile,"r")
+        wantedlist= fp.read().split("\n")
+        fp.close()
+        print str(len(wantedlist)-1) + " Artists Shows Found in Your Wanted List..."
+        xmldoc = minidom.parse(urllib.urlopen(constructPlexUrl("/library/sections/"+self.plexid+"/all")))
+        itemlist = xmldoc.getElementsByTagName('Directory')
+        print str(len(itemlist)) + " Total TV Artists Found"
+        syncedItems = 0
+        failedItems = 0
+        for item in itemlist:
+            title = item.attributes['title'].value
+            title = re.sub(r'[^\x00-\x7F]+',' ', title)
+            title = re.sub(r'\&','and', title)
+            itemkey = item.attributes['key'].value
+            if (title in wantedlist) or (self.sync =="enable"):
+                try:
+                    print title + " Found in Wanted List"
+                    xmlseason = minidom.parse(urllib.urlopen(constructPlexUrl(itemkey)))
+                    cdlist = xmlseason.getElementsByTagName('Directory')
+                    for cd in cdlist:
+                        cdtitle = cd.attributes['title'].value
+                        if cd.hasAttribute('index'):   #skip "allSeasons"
+                            xmlsong = minidom.parse(urllib.urlopen(constructPlexUrl(cd.attributes['key'].value)))
+                            #Get List of Songs
+                            songlist=xmlsong.getElementsByTagName('Track')
+                            for song in songlist:
+                                songtitle = song.attributes['title'].value
+                                songrating = song.attributes['ratingKey'].value
+                                if songtitle=="":
+                                    songtitle = songrating
+                                parts = getMediaParts(song)
+                                if self.exists(title,cdtitle,songtitle,parts[0]):
+                                    if verbose: print "Downloading Music: "+ cd + " Song: "+song+" exists..."
+                                    continue
+                                self.download(title,cdtitle,songtitle,parts)
+                                syncedItems += 1
+                except Exception as e:
+                    failedItems += 1
+                    print "Error syncing " + title + ".  Skipping..."
+                    print(traceback.format_exc())
+                    if debug_outputxml: print item.toprettyxml(encoding='utf-8')
+            else:
+                print title + " Not Found in Wanted List."
+        if syncedItems > 0 or failedItems > 0:
+            print "Music synch complete: %d downloaded, %d errors" % (syncedItems, failedItems)
+
+    #fixes up each parameter to be valid for the filesystem
+    #todo: change all the other fullfilepaths() to do the same
+    def fullfilepath(self,artist,cd,song,part,container=None):
+        f = os.path.join(self.location, getFilesystemSafeName(artist), getFilesystemSafeName(cd), getFilesystemSafeName(song))
+        if part and int(part['num']) > 1:
+            f=f+".pt"+str(part['num'])
+        if container:
+            f = f+"."+container
+        return f
+
+    def exists(self,artist,cd,song,part):
+        filepath=self.fullfilepath(artist,cd,song,part)
+        folder=os.path.dirname(filepath)
+        filename=os.path.basename(filepath)
+        if os.path.isdir(folder):
+            for f in os.listdir(folder):
+                if f.startswith(filename) and os.path.isfile(os.path.join(folder,f)):
+                    if isValidAudioFile(f):
+                        return os.path.join(folder,f)
+                    else:
+                        #print "Located " + f + " but is invalid extension"
+                        pass
+        return None
+
+    def download(self,artist,cd,song,parts):
+        for counter, part in enumerate(parts):
+            link = constructPlexUrl(part['key'])
+            ext = part['container']  #use whatever the server said it is first
+            if not ext: ext = os.path.splitext(part['filename'])[1][1:]
+            if len(parts) > 1:
+                print "Downloading Music: "+ cd + " Song: "+song+"..."+"... Part %d of %d" % (counter+1, len(parts))
+            else:
+                print "Downloading Music: "+ cd + " Song: "+song+"..."
+            if not retrieveMediaFile(link, self.fullfilepath(artist,cd,song,part),extension=ext,overwrite=False):
+                print "Music file not downloaded"
+
 
 def isValidVideoFile(filename):
     try:
         ext = os.path.splitext(filename)[1].lower()[1:]
         if ext in video_exts:
+            return True
+        return False
+    except Exception as e:
+        #print(traceback.format_exc())
+        return False
+
+def isValidAudioFile(filename):
+    try:
+        ext = os.path.splitext(filename)[1].lower()[1:]
+        if ext in audio_exts:
             return True
         return False
     except Exception as e:
@@ -617,7 +732,7 @@ def getDownloadURL2(metadata,quality,width,height,bitrate,session,token):
 #Set extension to non-None to override the automatic detection
 #Will overwrite existing files if "overwrite==True"
 #Returns True on download, False on no-download or failure
-def retrieveVideo(link,filename,extension=None,overwrite=False):
+def retrieveMediaFile(link,filename,extension=None,overwrite=False):
     try:
         cleanup = False  #gracefully cleanup failed transcodes so we can try again
         if not os.path.exists(os.path.split(filename)[0]):
@@ -683,7 +798,10 @@ def getMediaParts(node):
             filename = os.path.basename(filepath)
             foldername = os.path.dirname(os.path.realpath(filepath))
             foldername = os.path.basename(os.path.realpath(foldername))
-            parts.append({"num":counter+1, "key":downloadkey, "filename":filename,"foldername":foldername})
+            container = None;
+            if partitem.hasAttribute('container'):      #only seen this for audiofiles
+                container = partitem.attributes['container'].value
+            parts.append({"num":counter+1, "key":downloadkey, "filename":filename,"foldername":foldername, "container":container})
         return parts
     except Exception as e:
         print(traceback.format_exc())
@@ -783,71 +901,7 @@ def photoSearch():
             print albumtitle + " Album Not Found in Wanted List."
 
 
-
-def musicSearch():
-    musicopen = open(musicfile,"r")
-    musicread = musicopen.read()
-    musiclist= musicread.split("\n")
-    musicopen.close()
-    print str(len(musiclist)-1) + " Artists Found in Your Wanted List..."
-    if myplexstatus=="enable":
-        musichttp=url+"/library/sections/"+musicid+"/all"+"?X-Plex-Token="+plextoken
-    else:
-        musichttp=url+"/library/sections/"+musicid+"/all"
-    website = urllib.urlopen(musichttp)
-    xmldoc = minidom.parse(website)
-    #Get list of artists
-    itemlist = xmldoc.getElementsByTagName('Directory')
-    print str(len(itemlist)) + " Total Artists Found"
-    for item in itemlist:
-        musictitle = item.attributes['title'].value
-        musictitle = re.sub(r'[^\x00-\x7F]+',' ', musictitle)
-        musictitle = re.sub(r'\&','and', musictitle)
-        musickey = item.attributes['key'].value
-        if (musictitle in musiclist) or (musicsync=="enable"):
-            if myplexstatus=="enable":
-                cdhttp=url+musickey+"?X-Plex-Token="+plextoken
-            else:
-                cdhttp=url+musickey
-            cdweb=urllib.urlopen(cdhttp)
-            xmlcd=minidom.parse(cdweb)
-            #get List of CDs
-            cdlist=xmlcd.getElementsByTagName('Directory')
-            for cd in cdlist:
-                cdtitle = cd.attributes['title'].value
-                if (cdtitle != "All tracks"):
-                    cdkey = cd.attributes['key'].value
-                    if myplexstatus=="enable":
-                        songhttp=url+cdkey+"?X-Plex-Token="+plextoken
-                    else:
-                        songhttp=url+cdkey
-                    songweb=urllib.urlopen(songhttp)
-                    xmlsong=minidom.parse(songweb)
-                    #Get List of Songs
-                    songlist=xmlsong.getElementsByTagName('Track')
-                    for song in songlist:
-                        songtitle = song.attributes['title'].value
-                        songrating = song.attributes['ratingKey'].value
-                        if songtitle=="":
-                            songtitle = songrating
-                        partindex = song.getElementsByTagName('Part')
-
-                        songfile = partindex[0].attributes['key'].value
-                        songcontainer = partindex[0].attributes['container'].value
-
-                        if myplexstatus=="enable":
-                            songlink=url+songfile+"?X-Plex-Token="+plextoken
-                        else:
-                            songlink=url+songfile
-                        songDownloader(musictitle,cdtitle,songtitle,songlink,songcontainer)
-                else:
-                    print "Skipping all leaves."
-        else:
-            print musictitle + " Not in Wanted List"
-
-
-
-#Load all movie sections from config file
+#Load all sections from config file
 movies = []
 try:
     while True: movies.append(MovieDownloader(len(movies)))
@@ -856,6 +910,10 @@ tvshows = []
 try:
     while True: tvshows.append(TvDownloader(len(tvshows)))
 except TvDownloader.NoConfig: pass
+music = []
+try:
+    while True: music.append(MusicDownloader(len(music)))
+except MusicDownloader.NoConfig: pass
 
 while True:
     try:
@@ -870,10 +928,11 @@ while True:
         for x in movies:
             if(x.isactive()):
                 x.search()
+        for x in music:
+            if(x.isactive()):
+                x.search()
         if pictureactive=="enable":
             photoSearch()
-        if musicactive=="enable":
-            musicSearch()
 
         print "Plex Download completed at "+ strftime("%Y-%m-%d %H:%M:%S")
         print "Sleeping "+str(sleepTime)+" Seconds..."
