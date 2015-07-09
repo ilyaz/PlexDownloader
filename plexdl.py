@@ -60,12 +60,6 @@ myplexstatus = parser.get('myplex', 'status')
 myplexusername = parser.get('myplex', 'username')
 myplexpassword = parser.get('myplex', 'password')
 
-# musicid = parser.get('music', 'plexid')
-# musiclocation = parser.get('music', 'musiclocation')
-# musicfile = parser.get('music', 'musicfile')
-# musicsync = parser.get('music', 'fullsync')
-# musicactive = parser.get('music', 'active')
-
 pictureid = parser.get('pictures', 'plexid')
 picturelocation = parser.get('pictures', 'picturelocation')
 picturefile = parser.get('pictures', 'picturefile')
@@ -214,16 +208,15 @@ class MovieDownloader(object):
             itemname = title + " ("+year+")"
             if (itemname in wantedlist) or (self.sync=="enable"):
                 try:
-                    safeitemname = getFilesystemSafeName(itemname)
                     parts = getMediaParts(item)
-                    existingfile = self.exists(safeitemname,parts[0])
+                    existingfile = self.exists(itemname,parts[0])
                     if existingfile:
                         if verbose: print title + " ("+year+") exists... skipping!"
                         continue
                     if self.transcodeactive=="enable":
-                        self.transcode(safeitemname,itemkey,parts)
+                        self.transcode(itemname,itemkey,parts)
                     else:
-                        self.download(safeitemname,parts)
+                        self.download(itemname,parts)
                     syncedItems += 1
                 except Exception as e:
                     failedItems += 1
@@ -240,8 +233,8 @@ class MovieDownloader(object):
     #Note that this specifically will locate a "movie (year).pt1.mkv" file
     #regardless of what specific part is passed
     #Any valid video extension is considered found movie
-    def exists(self, safeitemname,part):
-        filepath=self.fullfilepath(safeitemname,part)
+    def exists(self, itemname,part):
+        filepath=self.fullfilepath(itemname,part)
         folder=os.path.dirname(filepath)
         filename=os.path.basename(filepath)
         if os.path.isdir(folder):
@@ -257,39 +250,40 @@ class MovieDownloader(object):
     #Path format of "self.location/movie name (year)/videos"
     #"server" structure uses the foldername and filename of the Plex server"
     #"default" structure uses generated folder and filenames
-    def fullfilepath(self, safeitemname,part,numparts=0,container=None):
+    #returns full filepath.  makes it all filesystem name-safe
+    def fullfilepath(self, itemname,part,numparts=0,container=None):
         if self.structure == "server":
-            f = os.path.join(self.location, part['foldername'], os.path.splitext(part['filename'])[0])
+            f = os.path.join(self.location, getFilesystemSafeName(part['foldername']), getFilesystemSafeName(os.path.splitext(part['filename'])[0]))
         else:
-            f = os.path.join(self.location, safeitemname, safeitemname)
+            f = os.path.join(self.location, getFilesystemSafeName(itemname), getFilesystemSafeName(itemname))
             if part and numparts>1:
                 f=f+".pt"+str(part['num'])
         if container:
-            f = f+"."+container
+            f = f+"."+getFilesystemSafeName(container)
         return f
 
-    def transcode(self,safeitemname,plexkey,parts):
+    def transcode(self,itemname,plexkey,parts):
         plexsession = ''.join(random.choice(string.ascii_lowercase + string.digits) for _ in range(16))
         #plexsession = "z9fja0pznf40anzd"
         for counter, part in enumerate(parts):
             link = getDownloadURL(plexkey,self.quality,self.width, self.height, self.bitrate,plexsession,plextoken,counter)
             #print "Transcode URL: "+link
             if len(parts) > 1:
-                print "Downloading transcoded "+ safeitemname +"... Part %d of %d" % (counter+1, len(parts))
+                print "Downloading transcoded "+ itemname +"... Part %d of %d" % (counter+1, len(parts))
             else:
-                print "Downloading transcoded "+ safeitemname+"..."
-            if not retrieveMediaFile(link, self.fullfilepath(safeitemname,part,len(parts)),overwrite=False):
+                print "Downloading transcoded "+ itemname+"..."
+            if not retrieveMediaFile(link, self.fullfilepath(itemname,part,len(parts)),overwrite=False):
                 print "Video not downloaded"
 
-    def download(self,safeitemname,parts):
+    def download(self,itemname,parts):
         for counter, part in enumerate(parts):
             link = constructPlexUrl(part['key'])
             ext = os.path.splitext(part['filename'])[1][1:] #override
             if len(parts) > 1:
-                print "Downloading "+ safeitemname +"... Part %d of %d" % (counter+1, len(parts))
+                print "Downloading "+ itemname +"... Part %d of %d" % (counter+1, len(parts))
             else:
-                print "Downloading "+ safeitemname+"..."
-            if not retrieveMediaFile(link, self.fullfilepath(safeitemname,part,len(parts)),extension=ext,overwrite=False):
+                print "Downloading "+ itemname+"..."
+            if not retrieveMediaFile(link, self.fullfilepath(itemname,part,len(parts)),extension=getFilesystemSafeName(ext),overwrite=False):
                 print "Video not downloaded"
 
 
@@ -343,7 +337,7 @@ class TvDownloader(object):
             title = re.sub(r'[^\x00-\x7F]+',' ', title)
             title = re.sub(r'\&','and', title)
             itemkey = item.attributes['key'].value
-            safeitemname = getFilesystemSafeName(title)
+            #safeitemname = getFilesystemSafeName(title)
             if (title in wantedlist) or (self.sync =="enable"):
                 print title + " Found in Wanted List"
                 xmlseason = minidom.parse(urllib.urlopen(constructPlexUrl(itemkey)))
@@ -389,7 +383,7 @@ class TvDownloader(object):
                             if self.delete=="enable":
                                 #clean-up old episodes
                                 #this logic isn't perfect.  It will not delete files that have been removed from the server.
-                                fn = self.exists(safeitemname,seasonindex,episodeindex,parts[0])
+                                fn = self.exists(title,seasonindex,episodeindex,parts[0])
                                 if fn:
                                     try:
                                         print "Deleting old episode: " + fn
@@ -399,15 +393,14 @@ class TvDownloader(object):
                                         failedItems += 1
                                         print "Could not delete old episode. Will try again on the next scan."
                             continue
-                        if self.exists(safeitemname,seasonindex,episodeindex,parts[0]):
-                            if verbose: print title + " Season "+ seasonindex + " Episode " + episodeindex + " exists..."
+                        if self.exists(title,seasonindex,episodeindex,parts[0]):
+                            if verbose: print title + " Season "+ seasonindex + " Episode " + episodeindex + " exists... skipping!"
                             continue
                         #print title + " Season "+ seasonindex + " Episode " + episodeindex
                         if self.transcodeactive=="enable":
-                            self.transcode(safeitemname,seasonindex,episodeindex,episodetitle,episodekey,parts)
+                            self.transcode(title,seasonindex,episodeindex,episodetitle,episodekey,parts)
                         else:
-                            self.download(safeitemname,seasonindex,episodeindex,episodetitle,episodekey,parts)
-                            #epDownloader(safeitemname,seasonindex,episodeindex,downloadcontainer,eplink,episodetitle)
+                            self.download(title,seasonindex,episodeindex,episodetitle,episodekey,parts)
                             pass
                         syncedItems += 1
                     except Exception as e:
@@ -425,12 +418,12 @@ class TvDownloader(object):
     #Note that this specifically will locate a "show[*].pt1.mkv" file
     #regardless of what specific part is passed
     #Any valid video extension is considered found
-    def exists(self,safeitemname,season,episode,part):
+    def exists(self,itemname,season,episode,part):
         season=int(season)
         episode=int(episode)
         #in server mode be strict about what to match against. Must be exactly the same.
         if self.structure == "server":
-            filepath=self.fullfilepath(safeitemname,season,episode,"", part)
+            filepath=self.fullfilepath(itemname,season,episode,"", part)
             folder=os.path.dirname(filepath)
             filename=os.path.basename(filepath)
             if os.path.isdir(folder):
@@ -444,7 +437,7 @@ class TvDownloader(object):
             return None
         #Be more flexible with searching for existing shows.
         dirs = []
-        dirs.append(os.path.join(self.location,safeitemname))
+        dirs.append(os.path.join(self.location,getFilesystemSafeName(itemname)))
         #also handle s1e01-e04 format
         pattern = '(?ix)(?:s)?(\d{1,3})(?:e|x)(\d{1,3})(?:-[ex](\d{1,3}))?(?:[\s\.\-,_])'  #handle where it just starts with S01
         r = re.compile(pattern)
@@ -463,40 +456,40 @@ class TvDownloader(object):
 
     #"server" structure uses the foldername and filename of the Plex server"
     #"default" structure is "self.location/show name/episodes"
-    def fullfilepath(self,safeitemname,season,episode,eptitle,part,container=None):
+    #returns full filepath.  makes it all filesystem name-safe
+    def fullfilepath(self,itemname,season,episode,eptitle,part,container=None):
         if self.structure == "server":
-            f = os.path.join(self.location, safeitemname, part['foldername'], os.path.splitext(part['filename'])[0])
+            f = os.path.join(self.location, getFilesystemSafeName(itemname), getFilesystemSafeName(part['foldername']), getFilesystemSafeName(os.path.splitext(part['filename'])[0]))
         else:
-            f = os.path.join(self.location, safeitemname, safeitemname+" - s"+season+"e"+episode+" - "+eptitle)
+            f = os.path.join(self.location, getFilesystemSafeName(itemname), getFilesystemSafeName(itemname+" - s"+season+"e"+episode+" - "+eptitle))
             if part and int(part['num']) > 1:
                 f=f+".pt"+str(part['num'])
         if container:
-            f = f+"."+container
+            f = f+"."+getFilesystemSafeName(container)
         return f
 
-    def transcode(self,safeitemname,season,episode,eptitle,plexkey,parts):
+    def transcode(self,itemname,season,episode,eptitle,plexkey,parts):
         plexsession = ''.join(random.choice(string.ascii_lowercase + string.digits) for _ in range(16))
         #plexsession = "z9fja0pznf40anzd"
         for counter, part in enumerate(parts):
             link = getDownloadURL(plexkey,self.quality,self.width, self.height, self.bitrate,plexsession,plextoken,counter)
             eptitle = getFilesystemSafeName(eptitle)
             if len(parts) > 1:
-                print "Downloading transcoded "+ safeitemname + " Season "+season+" Episode "+episode+"... Part %d of %d" % (counter+1, len(parts))
+                print "Downloading transcoded "+ itemname + " Season "+season+" Episode "+episode+"... Part %d of %d" % (counter+1, len(parts))
             else:
-                print "Downloading transcoded "+ safeitemname + " Season "+season+" Episode "+episode+"..."
-            if not retrieveMediaFile(link, self.fullfilepath(safeitemname,season,episode,eptitle,part),overwrite=False):
+                print "Downloading transcoded "+ itemname + " Season "+season+" Episode "+episode+"..."
+            if not retrieveMediaFile(link, self.fullfilepath(itemname,season,episode,eptitle,part),overwrite=False):
                 print "Video file not downloaded"
 
-    def download(self,safeitemname,season,episode,eptitle,plexkey,parts):
+    def download(self,itemname,season,episode,eptitle,plexkey,parts):
         for counter, part in enumerate(parts):
             link = constructPlexUrl(part['key'])
             ext = os.path.splitext(part['filename'])[1][1:] #override extension
-            eptitle = getFilesystemSafeName(eptitle)
             if len(parts) > 1:
-                print "Downloading "+ safeitemname + " Season "+season+" Episode "+episode+"... Part %d of %d" % (counter+1, len(parts))
+                print "Downloading "+ itemname + " Season "+season+" Episode "+episode+"... Part %d of %d" % (counter+1, len(parts))
             else:
-                print "Downloading "+ safeitemname + " Season "+season+" Episode "+episode+"..."
-            if not retrieveMediaFile(link, self.fullfilepath(safeitemname,season,episode,eptitle,part),extension=ext,overwrite=False):
+                print "Downloading "+ itemname + " Season "+season+" Episode "+episode+"..."
+            if not retrieveMediaFile(link, self.fullfilepath(itemname,season,episode,eptitle,part),extension=getFilesystemSafeName(ext),overwrite=False):
                 print "Video file not downloaded"
 
     # def getSeasonAndEpisodeFromFilename(filename):
@@ -589,14 +582,22 @@ class MusicDownloader(object):
                             xmlsong = minidom.parse(urllib.urlopen(constructPlexUrl(cd.attributes['key'].value)))
                             #Get List of Songs
                             songlist=xmlsong.getElementsByTagName('Track')
+                            #Check for duplicate song titles
+                            numberTitles = False
+                            songnames = [s.attributes['title'].value for s in songlist]
+                            if any(songnames.count(x) > 1 for x in songnames):
+                                numberTitles = True
+                                print "Warning: Duplicate song titles.  Adding track number at beginning of filename."
                             for song in songlist:
                                 songtitle = song.attributes['title'].value
                                 songrating = song.attributes['ratingKey'].value
                                 if songtitle=="":
                                     songtitle = songrating
+                                if numberTitles:
+                                    songtitle = str(song.attributes['index'].value).zfill(3) + " " + songtitle
                                 parts = getMediaParts(song)
                                 if self.exists(title,cdtitle,songtitle,parts[0]):
-                                    if verbose: print "Downloading Music: "+ cd + " Song: "+song+" exists..."
+                                    if verbose: print cdtitle + " / " +songtitle+" exists... skipping!"
                                     continue
                                 self.download(title,cdtitle,songtitle,parts)
                                 syncedItems += 1
@@ -610,8 +611,7 @@ class MusicDownloader(object):
         if syncedItems > 0 or failedItems > 0:
             print "Music synch complete: %d downloaded, %d errors" % (syncedItems, failedItems)
 
-    #fixes up each parameter to be valid for the filesystem
-    #todo: change all the other fullfilepaths() to do the same
+    #returns full filepath.  makes it all filesystem name-safe
     def fullfilepath(self,artist,cd,song,part,container=None):
         f = os.path.join(self.location, getFilesystemSafeName(artist), getFilesystemSafeName(cd), getFilesystemSafeName(song))
         if part and int(part['num']) > 1:
@@ -643,7 +643,7 @@ class MusicDownloader(object):
                 print "Downloading Music: "+ cd + " Song: "+song+"..."+"... Part %d of %d" % (counter+1, len(parts))
             else:
                 print "Downloading Music: "+ cd + " Song: "+song+"..."
-            if not retrieveMediaFile(link, self.fullfilepath(artist,cd,song,part),extension=ext,overwrite=False):
+            if not retrieveMediaFile(link, self.fullfilepath(artist,cd,song,part),extension=getFilesystemSafeName(ext),overwrite=False):
                 print "Music file not downloaded"
 
 
@@ -734,6 +734,7 @@ def getDownloadURL2(metadata,quality,width,height,bitrate,session,token):
 #Returns True on download, False on no-download or failure
 def retrieveMediaFile(link,filename,extension=None,overwrite=False):
     try:
+        #if verbose: print "storing link to: " + filename
         cleanup = False  #gracefully cleanup failed transcodes so we can try again
         if not os.path.exists(os.path.split(filename)[0]):
             os.makedirs(os.path.split(filename)[0])
@@ -830,28 +831,6 @@ def photoDownloader(albumname,picturename,link,container):
     else:
         print "File already exists. Skipping picture."
 
-
-def songDownloader(artist,cd,song,link,container):
-    musicfile=urllib.URLopener()
-    artist = getFilesystemSafeName(artist)
-    cd = getFilesystemSafeName(cd)
-    song = getFilesystemSafeName(song)
-
-
-    if not os.path.exists(musiclocation+artist):
-        os.makedirs(musiclocation+artist)
-    if not os.path.exists(musiclocation+artist+"/"+cd):
-        os.makedirs(musiclocation+artist+"/"+cd)
-    print "Downloading CD: "+ cd + " Song: "+song+  "..."
-
-    if not os.path.isfile(musiclocation+artist+"/"+cd+"/"+song+"."+container):
-        try:
-            musicfile.retrieve(link,musiclocation+artist+"/"+cd+"/"+song+"."+container)
-        except Exception as e:
-            print "Something went wrong downloading this song... Deleting and retrying on next music scan!"
-            os.remove(musiclocation+artist+"/"+cd+"/"+song+"."+container)
-    else:
-        print "Song already exists. Skipping song."
 
 def photoSearch():
     pictureopen = open(picturefile,"r")
