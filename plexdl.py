@@ -131,7 +131,7 @@ plexsession=str(uuid.uuid4())
 socket.setdefaulttimeout(180)
 
 debug_limitdld = False      #set to true during development to limit size of downloaded files
-debug_outputxml = True     #output relevant XML when exceptions occur
+debug_outputxml = False     #output relevant XML when exceptions occur
 debug_pretenddld = False     #set to true to fake downloading.  connects to Plex but doesn't save the file.
 debug_pretendremove = False   #set to true to fake removing files
 verbose = 0
@@ -744,7 +744,6 @@ def retrieveMediaFile(link,filename,extension=None,overwrite=False):
         if not os.path.exists(os.path.split(filename)[0]):
             os.makedirs(os.path.split(filename)[0])
         epfile = urllib.urlopen(link)
-        if verbose: print
         if extension:
             container = extension
         else:
@@ -767,7 +766,8 @@ def retrieveMediaFile(link,filename,extension=None,overwrite=False):
                     if debug_limitdld: break   #for development. limit to a single buffer size for output
             return True
         else:
-            #this shouldn't really happen.  Existing files should be caught before file is downloaded
+            #this shouldn't really happen.  Existing files should be caught before file is downloaded.
+            #Can happen when there is a new extension
             if verbose: print "Downloading "+link+" ==> "+filename
             print "File already exists. Skipping download."
             return False
