@@ -120,8 +120,8 @@ video_exts = ['3g2', '3gp', '3gp2', 'asf', 'avi', 'divx', 'flv', 'm4v', 'mk2',
               'iso', 'm2ts','mpa','mpe']
 pic_exts = ['bmp','gif','ico','ief','jpe','jpeg','jpg','pbm','pgm','png','pnm','ppm',
             'ras','rgb','tif','tiff','xbm','xpm','xwd','jpg','pct','pic','pict']
-audio_exts = [ 'aac','mp4','m4a','mp1','mp2','mp3','mpg','mpeg','oga','ogg','wav','webm',
-               '.mp2','.mp3','.ra','.ram','.snd','.wav']
+audio_exts = [ 'aac','asf','mp4','m4a','mp1','mp2','mp3','mpg','mpeg','oga','ogg','wav','webm',
+               '.mp2','.mp3','.ra','.ram','.snd','.wav', '.wma']
 
 
 
@@ -131,7 +131,7 @@ plexsession=str(uuid.uuid4())
 socket.setdefaulttimeout(180)
 
 debug_limitdld = False      #set to true during development to limit size of downloaded files
-debug_outputxml = False     #output relevant XML when exceptions occur
+debug_outputxml = True     #output relevant XML when exceptions occur
 debug_pretenddld = False     #set to true to fake downloading.  connects to Plex but doesn't save the file.
 debug_pretendremove = False   #set to true to fake removing files
 verbose = 0
@@ -273,7 +273,8 @@ class MovieDownloader(object):
             else:
                 print "Downloading transcoded "+ itemname+"..."
             if not retrieveMediaFile(link, self.fullfilepath(itemname,part,len(parts)),overwrite=False):
-                print "Video not downloaded"
+                print "Video not transcoded"
+                if verbose: print plexkey
 
     def download(self,itemname,parts):
         for counter, part in enumerate(parts):
@@ -479,7 +480,7 @@ class TvDownloader(object):
             else:
                 print "Downloading transcoded "+ itemname + " Season "+season+" Episode "+episode+"..."
             if not retrieveMediaFile(link, self.fullfilepath(itemname,season,episode,eptitle,part),overwrite=False):
-                print "Video file not downloaded"
+                print "Video file not transcoded"
 
     def download(self,itemname,season,episode,eptitle,plexkey,parts):
         for counter, part in enumerate(parts):
@@ -588,13 +589,16 @@ class MusicDownloader(object):
                             if any(songnames.count(x) > 1 for x in songnames):
                                 numberTitles = True
                                 print "Warning: Duplicate song titles.  Adding track number at beginning of filename."
-                            for song in songlist:
+                            for counter,song in enumerate(songlist):
                                 songtitle = song.attributes['title'].value
                                 songrating = song.attributes['ratingKey'].value
                                 if songtitle=="":
                                     songtitle = songrating
                                 if numberTitles:
-                                    songtitle = str(song.attributes['index'].value).zfill(3) + " " + songtitle
+                                    if song.hasAttribute('index'):
+                                        songtitle = str(song.attributes['index'].value).zfill(3) + " " + songtitle
+                                    else:
+                                        songtitle = str(counter).zfill(3) + " " + songtitle
                                 parts = getMediaParts(song)
                                 if self.exists(title,cdtitle,songtitle,parts[0]):
                                     if verbose: print cdtitle + " / " +songtitle+" exists... skipping!"
@@ -645,6 +649,7 @@ class MusicDownloader(object):
                 print "Downloading Music: "+ cd + " Song: "+song+"..."
             if not retrieveMediaFile(link, self.fullfilepath(artist,cd,song,part),extension=getFilesystemSafeName(ext),overwrite=False):
                 print "Music file not downloaded"
+
 
 
 def isValidVideoFile(filename):
@@ -739,6 +744,7 @@ def retrieveMediaFile(link,filename,extension=None,overwrite=False):
         if not os.path.exists(os.path.split(filename)[0]):
             os.makedirs(os.path.split(filename)[0])
         epfile = urllib.urlopen(link)
+        if verbose: print
         if extension:
             container = extension
         else:
@@ -761,7 +767,9 @@ def retrieveMediaFile(link,filename,extension=None,overwrite=False):
                     if debug_limitdld: break   #for development. limit to a single buffer size for output
             return True
         else:
-            print "File already exists. Skipping transcode."
+            #this shouldn't really happen.  Existing files should be caught before file is downloaded
+            if verbose: print "Downloading "+link+" ==> "+filename
+            print "File already exists. Skipping download."
             return False
     except (KeyboardInterrupt, SystemExit):
         try:
