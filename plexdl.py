@@ -68,7 +68,11 @@ pictureactive = parser.get('pictures', 'active')
 
 mimetypes = {   #Keep these all lowercase!
     'application/x-mpegurl':'m3u8',
+    'application/vnd.apple.mpegurl':'m3u8',
     'application/octet-stream':'m2ts',
+    'application/dash+xml':'mpd',
+    'text/xml':'xml',
+
     'video/3gpp':'3gp',
     'video/avi':'avi',
     'video/mp2t':'ts',
@@ -127,18 +131,19 @@ audio_exts = [ 'aac','asf','mp4','m4a','mp1','mp2','mp3','mpg','mpeg','oga','ogg
 
 #random_data = os.urandom(128)
 #plexsession = hashlib.md5(random_data).hexdigest()[:16]
-plexsession=str(uuid.uuid4())
+plexsession=str(uuid.uuid4())  #todo: hardcode this (see https://www.npmjs.com/package/plex-api)
 socket.setdefaulttimeout(180)
 
 debug_limitdld = False      #set to true during development to limit size of downloaded files
 debug_outputxml = False     #output relevant XML when exceptions occur
 debug_pretenddld = False     #set to true to fake downloading.  connects to Plex but doesn't save the file.
-debug_pretendremove = False   #set to true to fake removing files
+debug_pretendremove = False    #set to true to fake removing files
+debug_plexurl = False        #set to true to output plex URL  (caution - will output Plex token)
 verbose = 0
 
 plextoken=""
 
-print "PlexDownloader - v0.05"
+print "PlexDownloader - v0.06"
 
 class MovieDownloader(object):
     class NoConfig(Exception):
@@ -208,15 +213,13 @@ class MovieDownloader(object):
             itemname = title + " ("+year+")"
             if (itemname in wantedlist) or (self.sync=="enable"):
                 try:
-                    parts = getMediaParts(item)
+                    parts = getMediaContainerParts(itemkey)
+                    if not parts or len(parts) == 0: continue
                     existingfile = self.exists(itemname,parts[0])
                     if existingfile:
                         if verbose: print title + " ("+year+") exists... skipping!"
                         continue
-                    if self.transcodeactive=="enable":
-                        self.transcode(itemname,itemkey,parts)
-                    else:
-                        self.download(itemname,parts)
+                    self.download(itemname,itemkey,parts)
                     syncedItems += 1
                 except Exception as e:
                     failedItems += 1
@@ -262,31 +265,30 @@ class MovieDownloader(object):
             f = f+"."+getFilesystemSafeName(container)
         return f
 
-    def transcode(self,itemname,plexkey,parts):
+    def download(self,itemname,plexkey,parts):
         plexsession = ''.join(random.choice(string.ascii_lowercase + string.digits) for _ in range(16))
         #plexsession = "z9fja0pznf40anzd"
         for counter, part in enumerate(parts):
-            link = getDownloadURL(plexkey,self.quality,self.width, self.height, self.bitrate,plexsession,plextoken,counter)
-            #print "Transcode URL: "+link
             if len(parts) > 1:
-                print "Downloading transcoded "+ itemname +"... Part %d of %d" % (counter+1, len(parts))
+                msg = itemname +"... Part %d of %d" % (counter+1, len(parts))
             else:
-                print "Downloading transcoded "+ itemname+"..."
-            if not retrieveMediaFile(link, self.fullfilepath(itemname,part,len(parts)),overwrite=False):
-                print "Video not transcoded"
-                if verbose: print plexkey
-
-    def download(self,itemname,parts):
-        for counter, part in enumerate(parts):
-            link = constructPlexUrl(part['key'])
-            ext = os.path.splitext(part['filename'])[1][1:] #override
-            if len(parts) > 1:
-                print "Downloading "+ itemname +"... Part %d of %d" % (counter+1, len(parts))
+                msg = itemname+"..."
+            if "subtitle" in part:
+                print "Downloading subtitle "+ msg
+                link = constructPlexUrl(part['key'])
+                if not retrieveMediaFile(link, self.fullfilepath(itemname,part,len(parts)),extension=part["container"],overwrite=False):
+                    print "Subtitle file not downloaded"
+            elif self.transcodeactive=="enable":
+                print "Downloading transcode "+ msg
+                link = getTranscodeVideoURL(plexkey,self.quality,self.width, self.height, self.bitrate,plexsession,plextoken,counter)
+                if not retrieveMediaFile(link, self.fullfilepath(itemname,part,len(parts)),overwrite=False):
+                    print "Video not transcoded"
             else:
-                print "Downloading "+ itemname+"..."
-            if not retrieveMediaFile(link, self.fullfilepath(itemname,part,len(parts)),extension=getFilesystemSafeName(ext),overwrite=False):
-                print "Video not downloaded"
-
+                print "Downloading "+ msg
+                link = constructPlexUrl(part['key'])
+                ext = os.path.splitext(part['filename'])[1][1:] #override
+                if not retrieveMediaFile(link, self.fullfilepath(itemname,part,len(parts)),extension=getFilesystemSafeName(ext),overwrite=False):
+                    print "Video not downloaded"
 
 class TvDownloader(object):
     class NoConfig(Exception):
@@ -379,7 +381,8 @@ class TvDownloader(object):
                             else:
                                 if verbose: print "Episode is watched... skipping!"
                                 continue
-                        parts = getMediaParts(episode)
+                        parts = getMediaContainerParts(episodekey)
+                        if not parts or len(parts) == 0: continue
                         if self.type=="episode" and (counter != len(episodelist)-1):
                             if self.delete=="enable":
                                 #clean-up old episodes
@@ -398,11 +401,7 @@ class TvDownloader(object):
                             if verbose: print title + " Season "+ seasonindex + " Episode " + episodeindex + " exists... skipping!"
                             continue
                         #print title + " Season "+ seasonindex + " Episode " + episodeindex
-                        if self.transcodeactive=="enable":
-                            self.transcode(title,seasonindex,episodeindex,episodetitle,episodekey,parts)
-                        else:
-                            self.download(title,seasonindex,episodeindex,episodetitle,episodekey,parts)
-                            pass
+                        self.download(title,seasonindex,episodeindex,episodetitle,episodekey,parts)
                         syncedItems += 1
                     except Exception as e:
                         failedItems += 1
@@ -457,6 +456,7 @@ class TvDownloader(object):
 
     #"server" structure uses the foldername and filename of the Plex server"
     #"default" structure is "self.location/show name/episodes"
+    #contents of part are used to determine if there should be a "ptX" appended
     #returns full filepath.  makes it all filesystem name-safe
     def fullfilepath(self,itemname,season,episode,eptitle,part,container=None):
         if self.structure == "server":
@@ -469,29 +469,32 @@ class TvDownloader(object):
             f = f+"."+getFilesystemSafeName(container)
         return f
 
-    def transcode(self,itemname,season,episode,eptitle,plexkey,parts):
+    def download(self,itemname,season,episode,eptitle,plexkey,parts):
         plexsession = ''.join(random.choice(string.ascii_lowercase + string.digits) for _ in range(16))
         #plexsession = "z9fja0pznf40anzd"
         for counter, part in enumerate(parts):
-            link = getDownloadURL(plexkey,self.quality,self.width, self.height, self.bitrate,plexsession,plextoken,counter)
             eptitle = getFilesystemSafeName(eptitle)
+            #if self.transcodeactive=="enable": msg = "transcoded"
             if len(parts) > 1:
-                print "Downloading transcoded "+ itemname + " Season "+season+" Episode "+episode+"... Part %d of %d" % (counter+1, len(parts))
+                msg = itemname + " Season "+season+" Episode "+episode+"... Item %d of %d" % (counter+1, len(parts))
             else:
-                print "Downloading transcoded "+ itemname + " Season "+season+" Episode "+episode+"..."
-            if not retrieveMediaFile(link, self.fullfilepath(itemname,season,episode,eptitle,part),overwrite=False):
-                print "Video file not transcoded"
-
-    def download(self,itemname,season,episode,eptitle,plexkey,parts):
-        for counter, part in enumerate(parts):
-            link = constructPlexUrl(part['key'])
-            ext = os.path.splitext(part['filename'])[1][1:] #override extension
-            if len(parts) > 1:
-                print "Downloading "+ itemname + " Season "+season+" Episode "+episode+"... Part %d of %d" % (counter+1, len(parts))
+                msg = itemname + " Season "+season+" Episode "+episode+"..."
+            if "subtitle" in part:
+                print "Downloading subtitle "+ msg
+                link = constructPlexUrl(part['key'])
+                if not retrieveMediaFile(link, self.fullfilepath(itemname,season,episode,eptitle,part),extension=part["container"],overwrite=False):
+                    print "Subtitle file not downloaded"
+            elif self.transcodeactive=="enable":
+                print "Downloading transcode "+ msg
+                link = getTranscodeVideoURL(plexkey,self.quality,self.width, self.height, self.bitrate,plexsession,plextoken,counter)
+                if not retrieveMediaFile(link, self.fullfilepath(itemname,season,episode,eptitle,part),overwrite=False):
+                    print "Video file not transcoded"
             else:
-                print "Downloading "+ itemname + " Season "+season+" Episode "+episode+"..."
-            if not retrieveMediaFile(link, self.fullfilepath(itemname,season,episode,eptitle,part),extension=getFilesystemSafeName(ext),overwrite=False):
-                print "Video file not downloaded"
+                print "Downloading "+ msg
+                link = constructPlexUrl(part['key'])
+                ext = os.path.splitext(part['filename'])[1][1:] #override extension
+                if not retrieveMediaFile(link, self.fullfilepath(itemname,season,episode,eptitle,part),extension=getFilesystemSafeName(ext),overwrite=False):
+                    print "Video file not downloaded"
 
     # def getSeasonAndEpisodeFromFilename(filename):
     #     #todo: Add in syntax below for multi-episode formats
@@ -599,7 +602,8 @@ class MusicDownloader(object):
                                         songtitle = str(song.attributes['index'].value).zfill(3) + " " + songtitle
                                     else:
                                         songtitle = str(counter).zfill(3) + " " + songtitle
-                                parts = getMediaParts(song)
+                                parts = getMediaContainerParts(song.attributes['key'].value)
+                                if not parts or len(parts) == 0: continue
                                 if self.exists(title,cdtitle,songtitle,parts[0]):
                                     if verbose: print cdtitle + " / " +songtitle+" exists... skipping!"
                                     continue
@@ -616,12 +620,12 @@ class MusicDownloader(object):
             print "Music synch complete: %d downloaded, %d errors" % (syncedItems, failedItems)
 
     #returns full filepath.  makes it all filesystem name-safe
-    def fullfilepath(self,artist,cd,song,part,container=None):
+    def fullfilepath(self,artist,cd,song,part,extension=None):
         f = os.path.join(self.location, getFilesystemSafeName(artist), getFilesystemSafeName(cd), getFilesystemSafeName(song))
         if part and int(part['num']) > 1:
             f=f+".pt"+str(part['num'])
-        if container:
-            f = f+"."+container
+        if extension:
+            f = f+"."+extension
         return f
 
     def exists(self,artist,cd,song,part):
@@ -640,13 +644,15 @@ class MusicDownloader(object):
 
     def download(self,artist,cd,song,parts):
         for counter, part in enumerate(parts):
+            if len(parts) > 1:
+                msg = cd + " Song: "+song+"..."+"... Part %d of %d" % (counter+1, len(parts))
+            else:
+                msg = cd + " Song: "+song+"..."
+            #this is good for both audio files and any future subtitles (future-proof for lyrics)
+            print "Downloading "+ msg
             link = constructPlexUrl(part['key'])
             ext = part['container']  #use whatever the server said it is first
             if not ext: ext = os.path.splitext(part['filename'])[1][1:]
-            if len(parts) > 1:
-                print "Downloading Music: "+ cd + " Song: "+song+"..."+"... Part %d of %d" % (counter+1, len(parts))
-            else:
-                print "Downloading Music: "+ cd + " Song: "+song+"..."
             if not retrieveMediaFile(link, self.fullfilepath(artist,cd,song,part),extension=getFilesystemSafeName(ext),overwrite=False):
                 print "Music file not downloaded"
 
@@ -672,7 +678,7 @@ def isValidAudioFile(filename):
         #print(traceback.format_exc())
         return False
 
-def getDownloadURL(plexkey,quality,width,height,bitrate,session,token,partindex=0):
+def getTranscodeVideoURL(plexkey,quality,width,height,bitrate,session,token,partindex=0):
     clientuid = uuid.uuid4()
     clientid = clientuid.hex[0:16]
     link = (url+"/video/:/transcode/universal/start?path=http%3A%2F%2F127.0.0.1%3A32400"+plexkey+
@@ -683,54 +689,28 @@ def getDownloadURL(plexkey,quality,width,height,bitrate,session,token,partindex=
             "&fastSeek=1"+
             "&directPlay=0"+
             "&directStream=1"+
-            "&includeCodecs=1"+
             "&videoQuality="+quality+
             "&videoResolution="+width+"x"+height+
             "&maxVideoBitrate="+bitrate+
             "&subtitleSize=100"+
             "&audioBoost=100"+
             "&session="+session+
-            "&X-Plex-Client-Profile-Extra=add-transcode-target-audio-codec(type%3DvideoProfile%26context%3Dstreaming%26protocol%3Dhls%26audioCodec%3Daac)"+  #restrict audiocodec to aac
+            #"&X-Plex-Client-Profile-Extra=add-transcode-target-audio-codec(type%3DvideoProfile%26context%3Dstreaming%26protocol%3Dhls%26audioCodec%3Daac)"+  #restrict audiocodec to aac
             "&X-Plex-Client-Identifier="+clientid+
             "&X-Plex-Product=Plex Web"+
             "&X-Plex-Device=Plex Downloader"+
-            "&X-Plex-Platform=Web"+
+            "&X-Plex-Platform=HTML TV App"+
             "&X-Plex-Platform-Version=43.0"+
             "&X-Plex-Version=2.4.9"
             )
     if myplexstatus=="enable":
         link = link+"&X-Plex-Token="+token
+    if debug_plexurl: print link
     return link
 
-def getDownloadURL2(metadata,quality,width,height,bitrate,session,token):
-    clientuid = uuid.uuid4()
-    clientid = clientuid.hex[0:16]
-    link = (url+"/video/:/transcode/universal/start?path=http%3A%2F%2F127.0.0.1%3A32400%2Flibrary%2Fmetadata%2F"+metadata+
-            "&mediaIndex=0"+
-            "&partIndex=0"+
-            "&protocol=http"+
-            "&offset=0"+
-            "&fastSeek=1"+
-            "&directPlay=0"+
-            "&directStream=1"+
-            "&includeCodecs=1"+
-            "&videoQuality="+quality+
-            "&videoResolution="+width+"x"+height+
-            "&maxVideoBitrate="+bitrate+
-            "&subtitleSize=100"+
-            "&audioBoost=100"+
-            "&session="+session+
-            "&X-Plex-Client-Profile-Extra=add-transcode-target-audio-codec(type%3DvideoProfile%26context%3Dstreaming%26protocol%3Dhls%26audioCodec%3Daac)"+  #restrict audiocodec to aac
-            "&X-Plex-Client-Identifier="+clientid+
-            "&X-Plex-Product=Plex Web"+
-            "&X-Plex-Device=Plex Downloader"+
-            "&X-Plex-Platform=Web"+
-            "&X-Plex-Platform-Version=43.0"+
-            "&X-Plex-Version=2.4.9"
-            )
-    if myplexstatus=="enable":
-        link = link+"&X-Plex-Token="+token
-    return link
+#hls flow
+
+
 
 #Downloads link to file.  Will detect the type of video file and add the
 #correct extension to file.  Will work with multi-part video files.
@@ -744,17 +724,18 @@ def retrieveMediaFile(link,filename,extension=None,overwrite=False):
         if not os.path.exists(os.path.split(filename)[0]):
             os.makedirs(os.path.split(filename)[0])
         epfile = urllib.urlopen(link)
-        if extension:
-            container = extension
-        else:
-            mimetype = epfile.info().type
-            #print mimetype
-            if mimetype.lower() in mimetypes:
-                container = mimetypes[mimetype.lower()]
+        print epfile.info()
+        if not extension:
+            mimetype = epfile.info().type.lower()
+            mimetype = mimetype.replace('content-type: ','')  #plex has bug that returns "Content-Type" as part of the Content-Type.  Doh!
+            if mimetype in mimetypes:
+                extension = mimetypes[mimetype]
             else:
                 print "Warning: Unknown mimetype for file (%s) Using mpg as default" % (mimetype)
-                container = "mpg"  #use this as default
-        filename=filename+"."+container
+                extension = "mpg"  #use this as default
+        filename=filename+"."+extension.lower()
+        #if verbose: print "Downloading "+link+" ==> "+filename
+        if verbose: print "Downloading "+filename
         if debug_pretenddld: return True
         if overwrite or (not os.path.isfile(filename)):
             with open(filename, "wb") as fp:
@@ -766,9 +747,8 @@ def retrieveMediaFile(link,filename,extension=None,overwrite=False):
                     if debug_limitdld: break   #for development. limit to a single buffer size for output
             return True
         else:
-            #this shouldn't really happen.  Existing files should be caught before file is downloaded.
-            #Can happen when there is a new extension
-            if verbose: print "Downloading "+link+" ==> "+filename
+            #this shouldn't really happen much.  Existing files should be caught before file is downloaded.
+            #Can happen when there is a new extension or when subtitles/multi-parts exist
             print "File already exists. Skipping download."
             return False
     except (KeyboardInterrupt, SystemExit):
@@ -792,12 +772,15 @@ def constructPlexUrl(key):
     http = str(url) + str(key)
     if myplexstatus=="enable":
         http +="?X-Plex-Token="+plextoken
-    #print http
+    if debug_plexurl: print http
     return http
 
-def getMediaParts(node):
+#Loads the passed key from node.
+#'container' is sometimes None
+def getMediaContainerParts(key):
     try:
-        partindex = node.getElementsByTagName('Part')
+        xmlmedia = minidom.parse(urllib.urlopen(constructPlexUrl(key)))
+        partindex = xmlmedia.getElementsByTagName('Part')
         parts = []
         for counter, partitem in enumerate(partindex):
             downloadkey = partitem.attributes['key'].value  #key goes directly to file
@@ -807,12 +790,31 @@ def getMediaParts(node):
             filename = os.path.basename(filepath)
             foldername = os.path.dirname(os.path.realpath(filepath))
             foldername = os.path.basename(os.path.realpath(foldername))
-            container = None;
-            if partitem.hasAttribute('container'):      #only seen this for audiofiles
-                container = partitem.attributes['container'].value
+            container = partitem.getAttribute('container')  #not always present
             parts.append({"num":counter+1, "key":downloadkey, "filename":filename,"foldername":foldername, "container":container})
+            #Add any subtitle files
+            try:  #seperate try block so failure is limited to subtitles (which can be messy)
+                streamindex = partitem.getElementsByTagName('Stream')
+                subtitles = {}
+                #only 3 types of streams.  1=video, 2=audio, 3=subtitle
+                for stream in streamindex:
+                    if (stream.getAttribute("streamType") == "3") and (stream.getAttribute("key")):  #only streams with keys are non-embedded
+                        if stream.getAttribute("codec").lower() in subtitle_exts:
+                            lang = stream.getAttribute("languageCode").lower()
+                            if not lang: lang = "unk"
+                            if lang in subtitles:
+                                streamcontainer = lang + "." + str(subtitles[lang]) + "." + stream.getAttribute("codec").lower()
+                                subtitles[lang] += 1
+                            else:
+                                streamcontainer = lang + "." + stream.getAttribute("codec").lower()
+                                subtitles[lang] = 1
+                            parts.append({"num":counter+1, "key":stream.getAttribute("key"), "filename":filename,"foldername":foldername, "container":streamcontainer, "subtitle":True})
+            except Exception as e:
+                print "Error while getting subtitles"
+                print(traceback.format_exc())
         return parts
     except Exception as e:
+        print "Error while getting media parts"
         print(traceback.format_exc())
         return None
 
