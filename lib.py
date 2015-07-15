@@ -122,7 +122,7 @@ def mvTranscoder(moviefull,container,link,moviemetadata):
 			mvfile.retrieve(link,movielocation+moviefull+"/"+moviefull+"."+container)
 		except:
 			print "Something went wrong transcoding this movie... Deleting and retrying on next movie scan!"
-			os.remove(movielocation+moviefull+"/"+moviefull+"."+container)			
+			os.remove(movielocation+moviefull+"/"+moviefull+"."+container)
 	else:
 		print "File already exists. Skipping movie transcode."
 
@@ -136,7 +136,7 @@ def tvTranscoder(show,season,episode,container,link,eptitle,tvmetadata):
 	platformversion = platform.version()
 	plexsession = ''.join(random.choice(string.ascii_lowercase + string.digits) for _ in range(16))
 	clientuid = uuid.uuid4()
-	clientid = clientuid.hex[0:16]	
+	clientid = clientuid.hex[0:16]
 	plexsession = "z9fja0pznf40anzd"
 	plexprovides = "controller"
 	if myplexstatus=="enable":
@@ -193,7 +193,7 @@ def mvDownloader(moviefull,container,link):
 			mvfile.retrieve(link,movielocation+moviefull+"/"+moviefull+"."+container)
 		except:
 			print "Something went wrong downloading this movie... Deleting and retrying on next movie scan!"
-			os.remove(movielocation+moviefull+"/"+moviefull+"."+container)			
+			os.remove(movielocation+moviefull+"/"+moviefull+"."+container)
 	else:
 		print "File already exists. Skipping movie."
 
@@ -212,7 +212,7 @@ def photoDownloader(albumname,picturename,link,container):
 			photofile.retrieve(link,picturelocation+albumname+"/"+picturename+"."+container)
 		except:
 			print "Something went wrong downloading this picture... Deleting and retrying on next picture scan!"
-			os.remove(picturelocation+albumname+"/"+picturename+"."+container)			
+			os.remove(picturelocation+albumname+"/"+picturename+"."+container)
 	else:
 		print "File already exists. Skipping picture."
 
@@ -235,7 +235,7 @@ def songDownloader(artist,cd,song,link,container):
 			musicfile.retrieve(link,musiclocation+artist+"/"+cd+"/"+song+"."+container)
 		except:
 			print "Something went wrong downloading this song... Deleting and retrying on next music scan!"
-			os.remove(musiclocation+artist+"/"+cd+"/"+song+"."+container)			
+			os.remove(musiclocation+artist+"/"+cd+"/"+song+"."+container)
 	else:
 		print "Song already exists. Skipping song."
 
@@ -248,11 +248,11 @@ def tvShowSearch():
 	if myplexstatus=="enable":
 		tvhttp=url+"/library/sections/"+tvshowid+"/all"+"?X-Plex-Token="+plextoken
 	else:
-		tvhttp=url+"/library/sections/"+tvshowid+"/all"		
+		tvhttp=url+"/library/sections/"+tvshowid+"/all"
 
 	website = urllib.urlopen(tvhttp)
 	xmldoc = minidom.parse(website)
-	itemlist = xmldoc.getElementsByTagName('Directory') 
+	itemlist = xmldoc.getElementsByTagName('Directory')
 	print str(len(itemlist)) + " Total TV Shows Found"
 	for item in itemlist:
 		tvkey = item.attributes['key'].value
@@ -293,7 +293,7 @@ def tvShowSearch():
 								#checks to see if episode has been viewed node is available
 								tvviewcount = episode.attributes['lastViewedAt'].value
 							except:
-								#if fails to find lastViewedAt will notify script that tv is unwatched 
+								#if fails to find lastViewedAt will notify script that tv is unwatched
 								tvviewcount = "unwatched"
 							#checks if user wants unwatched only
 							if tvunwatched=="enable":
@@ -313,9 +313,9 @@ def tvShowSearch():
 								eplink=url+downloadkey
 							if tvtranscode=="enable":
 								tvTranscoder(tvtitle,seasonindex,episodeindex,downloadcontainer,eplink,episodetitle,episoderatingkey)
-							else:							
+							else:
 								epDownloader(tvtitle,seasonindex,episodeindex,downloadcontainer,eplink,episodetitle)
-					
+
 					elif (tvtype=="episode"):
 						seasonkey= season.attributes['key'].value
 						seasonindex= season.attributes['index'].value
@@ -338,7 +338,7 @@ def tvShowSearch():
 								#checks to see if episode has been viewed node is available
 								tvviewcount = episode.attributes['lastViewedAt'].value
 							except:
-								#if fails to find lastViewedAt will notify script that tv is unwatched 
+								#if fails to find lastViewedAt will notify script that tv is unwatched
 								tvviewcount = "unwatched"
 							#checks if user wants unwatched only
 							if tvunwatched=="enable":
@@ -359,8 +359,8 @@ def tvShowSearch():
 							if (episodeindex==str(latestepisode)) and (seasontitle=="Season "+str(latestseason)):
 								if tvtranscode=="enable":
 									tvTranscoder(tvtitle,seasonindex,episodeindex,downloadcontainer,eplink,episodetitle,episoderatingkey)
-								else:							
-									epDownloader(tvtitle,seasonindex,episodeindex,downloadcontainer,eplink,episodetitle)							
+								else:
+									epDownloader(tvtitle,seasonindex,episodeindex,downloadcontainer,eplink,episodetitle)
 							elif (tvdelete=="enable"):
 								if os.path.isfile(tvlocation+tvtitle+"/"+tvtitle+" - "+seasonindex+"x"+episodeindex+" - "+episodetitle+"."+downloadcontainer):
 									try:
@@ -394,7 +394,7 @@ def tvShowSearch():
 									#checks to see if episode has been viewed node is available
 									tvviewcount = episode.attributes['lastViewedAt'].value
 								except:
-									#if fails to find lastViewedAt will notify script that tv is unwatched 
+									#if fails to find lastViewedAt will notify script that tv is unwatched
 									tvviewcount = "unwatched"
 								#checks if user wants unwatched only
 								if tvunwatched=="enable":
@@ -411,10 +411,10 @@ def tvShowSearch():
 								if myplexstatus=="enable":
 									eplink=url+downloadkey+"?X-Plex-Token="+plextoken
 								else:
-									eplink=url+downloadkey	
+									eplink=url+downloadkey
 								if tvtranscode=="enable":
 									tvTranscoder(tvtitle,seasonindex,episodeindex,downloadcontainer,eplink,episodetitle,episoderatingkey)
-								else:							
+								else:
 									epDownloader(tvtitle,seasonindex,episodeindex,downloadcontainer,eplink,episodetitle)
 						else:
 							print "Ignoring "+tvtitle+" Season."
@@ -437,11 +437,11 @@ def movieSearch():
 		moviehttp=url+"/library/sections/"+movieid+"/all"
 	website = urllib.urlopen(moviehttp)
 	xmldoc = minidom.parse(website)
-	itemlist = xmldoc.getElementsByTagName('Video') 
+	itemlist = xmldoc.getElementsByTagName('Video')
 	print str(len(itemlist)) + " Total Movies Found"
 	for item in itemlist:
 		movietitle = item.attributes['title'].value
-		movietitle = re.sub(r'[^\x00-\x7F]+',' ', movietitle)
+		#movietitle = re.sub(r'[^\x00-\x7F]+',' ', movietitle)
 		movietitle = re.sub(r'\&','and', movietitle)
 		moviedata = item.attributes['key'].value
 		movieratingkey = item.attributes['ratingKey'].value
@@ -453,7 +453,7 @@ def movieSearch():
 			#checks to see if view count node is available
 			movieviewcount = item.attributes['viewCount'].value
 		except:
-			#if fails to find viewCount will notify script that it can continue 
+			#if fails to find viewCount will notify script that it can continue
 			movieviewcount = "unwatched"
 		#checks if user wants unwatched only
 		if movieunwatched=="enable":
@@ -497,7 +497,7 @@ def photoSearch():
 		pichttp=url+"/library/sections/"+pictureid+"/all"
 	website = urllib.urlopen(pichttp)
 	xmldoc = minidom.parse(website)
-	itemlist = xmldoc.getElementsByTagName('Directory') 
+	itemlist = xmldoc.getElementsByTagName('Directory')
 	print str(len(itemlist)) + " Total Albums Found"
 	for item in itemlist:
 		albumtitle = item.attributes['title'].value
@@ -527,7 +527,7 @@ def photoSearch():
 					piclink=url+pickey
 				print pictitle + albumtitle
 				photoDownloader(albumtitle,pictitle,piclink,piccontainer)
-				
+
 		else:
 			print albumtitle + " Album Not Found in Wanted List."
 
@@ -546,7 +546,7 @@ def musicSearch():
 	website = urllib.urlopen(musichttp)
 	xmldoc = minidom.parse(website)
 	#Get list of artists
-	itemlist = xmldoc.getElementsByTagName('Directory') 
+	itemlist = xmldoc.getElementsByTagName('Directory')
 	print str(len(itemlist)) + " Total Artists Found"
 	for item in itemlist:
 		musictitle = item.attributes['title'].value
@@ -561,26 +561,26 @@ def musicSearch():
 			cdweb=urllib.urlopen(cdhttp)
 			xmlcd=minidom.parse(cdweb)
 			#get List of CDs
-			cdlist=xmlcd.getElementsByTagName('Directory')	
+			cdlist=xmlcd.getElementsByTagName('Directory')
 			for cd in cdlist:
 				cdtitle = cd.attributes['title'].value
 				if (cdtitle != "All tracks"):
-					cdkey = cd.attributes['key'].value				
+					cdkey = cd.attributes['key'].value
 					if myplexstatus=="enable":
 						songhttp=url+cdkey+"?X-Plex-Token="+plextoken
 					else:
 						songhttp=url+cdkey
 					songweb=urllib.urlopen(songhttp)
 					xmlsong=minidom.parse(songweb)
-					#Get List of Songs 
-					songlist=xmlsong.getElementsByTagName('Track')	
+					#Get List of Songs
+					songlist=xmlsong.getElementsByTagName('Track')
 					for song in songlist:
 						songtitle = song.attributes['title'].value
 						songrating = song.attributes['ratingKey'].value
 						if songtitle=="":
 							songtitle = songrating
-						partindex = song.getElementsByTagName('Part')						
-				
+						partindex = song.getElementsByTagName('Part')
+
 						songfile = partindex[0].attributes['key'].value
 						songcontainer = partindex[0].attributes['container'].value
 

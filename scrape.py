@@ -111,15 +111,15 @@ def tvShowScraper(searchtype):
 	if myplexstatus=="enable":
 		tvhttp=url+"/library/sections/"+tvshowid+"/"+searchtype+"?X-Plex-Token="+plextoken
 	else:
-		tvhttp=url+"/library/sections/"+tvshowid+"/"+searchtype		
+		tvhttp=url+"/library/sections/"+tvshowid+"/"+searchtype
 	website = urllib.urlopen(tvhttp)
 	xmldoc = minidom.parse(website)
-	itemlist = xmldoc.getElementsByTagName('Directory') 
+	itemlist = xmldoc.getElementsByTagName('Directory')
 	print str(len(itemlist)) + " Total TV Shows Found"
 	for item in itemlist:
 		tvkey = item.attributes['key'].value
 		tvtitle = item.attributes['title'].value
-		tvtitle = re.sub(r'[^\x00-\x7F]+',' ', tvtitle)
+		#tvtitle = re.sub(r'[^\x00-\x7F]+',' ', tvtitle)
 		tvtitle = re.sub(r'\&','and', tvtitle)
 		if (x <= tvscrapelimit):
 			tvlist.append(tvtitle)
@@ -134,7 +134,7 @@ def tvShowScraper(searchtype):
 	for item in tvlist:
 		tvwrite = tvopen.write(item+"\n")
 	tvopen.close()
-	
+
 
 
 def movieScraper(searchtype):
@@ -151,11 +151,11 @@ def movieScraper(searchtype):
 		moviehttp=url+"/library/sections/"+movieid+"/"+searchtype
 	website = urllib.urlopen(moviehttp)
 	xmldoc = minidom.parse(website)
-	itemlist = xmldoc.getElementsByTagName('Video') 
+	itemlist = xmldoc.getElementsByTagName('Video')
 	print str(len(itemlist)) + " Total Movies Found"
 	for item in itemlist:
 		movietitle = item.attributes['title'].value
-		movietitle = re.sub(r'[^\x00-\x7F]+',' ', movietitle)
+		#movietitle = re.sub(r'[^\x00-\x7F]+',' ', movietitle)
 		movietitle = re.sub(r'\&','and', movietitle)
 		moviedata = item.attributes['key'].value
 		movieratingkey = item.attributes['ratingKey'].value
@@ -192,11 +192,11 @@ def photoScraper(searchtype):
 		pichttp=url+"/library/sections/"+pictureid+"/"+searchtype
 	website = urllib.urlopen(pichttp)
 	xmldoc = minidom.parse(website)
-	itemlist = xmldoc.getElementsByTagName('Directory') 
+	itemlist = xmldoc.getElementsByTagName('Directory')
 	print str(len(itemlist)) + " Total Albums Found"
 	for item in itemlist:
 		albumtitle = item.attributes['title'].value
-		albumtitle = re.sub(r'[^\x00-\x7F]+',' ', albumtitle)
+		#albumtitle = re.sub(r'[^\x00-\x7F]+',' ', albumtitle)
 		albumtitle = re.sub(r'\&','and', albumtitle)
 		albumkey = item.attributes['key'].value
 
@@ -216,11 +216,11 @@ def musicScraper(searchtype):
 	website = urllib.urlopen(musichttp)
 	xmldoc = minidom.parse(website)
 	#Get list of artists
-	itemlist = xmldoc.getElementsByTagName('Directory') 
+	itemlist = xmldoc.getElementsByTagName('Directory')
 	print str(len(itemlist)) + " Total Artists Found"
 	for item in itemlist:
 		musictitle = item.attributes['title'].value
-		musictitle = re.sub(r'[^\x00-\x7F]+',' ', musictitle)
+		#musictitle = re.sub(r'[^\x00-\x7F]+',' ', musictitle)
 		musictitle = re.sub(r'\&','and', musictitle)
 		musickey = item.attributes['key'].value
 
@@ -236,7 +236,7 @@ while True:
 		if tvactive=="enable" and tvscrapetype != "disable":
 			tvShowScraper(tvscrapetype)
 		if movieactive=="enable" and moviescrapetype != "disable":
-			movieScraper(moviescrapetype)		
+			movieScraper(moviescrapetype)
 		#if pictureactive=="enable":
 		#	photoScraper('recentlyAdded')
 		#if musicactive=="enable":
@@ -245,7 +245,7 @@ while True:
 		print "Plex Scraper completed at "+ strftime("%Y-%m-%d %H:%M:%S")
 		print "Sleeping "+str(scrapetimer)+" Seconds..."
 		time.sleep(scrapetimer)
-	except Exception,e: 
+	except Exception,e:
 		print "Something went wrong: " + str(e)
 		print "Plex Scraper failed at "+ strftime("%Y-%m-%d %H:%M:%S")
 		print "Retrying in "+str(scrapetimer)+" Seconds..."

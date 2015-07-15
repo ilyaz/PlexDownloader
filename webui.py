@@ -83,14 +83,14 @@ def movieSearchWeb():
 	if myplexstatus=="enable":
 		moviehttp=url+"/library/sections/"+movieid+"/all"+"?X-Plex-Token="+plextoken
 	else:
-		moviehttp=url+"/library/sections/"+movieid+"/all"	
+		moviehttp=url+"/library/sections/"+movieid+"/all"
 	website = urllib.urlopen(moviehttp)
 	xmldoc = minidom.parse(website)
-	movielibrary = xmldoc.getElementsByTagName('Video') 
+	movielibrary = xmldoc.getElementsByTagName('Video')
 
 	for item in movielibrary:
 		moviename= item.attributes['title'].value
-		moviename = re.sub(r'[^\x00-\x7F]+',' ', moviename)
+		#moviename = re.sub(r'[^\x00-\x7F]+',' ', moviename)
 		moviename = re.sub(r'\&','and', moviename)
 		try:
 			movieyear = item.attributes['year'].value
@@ -115,10 +115,10 @@ def musicSearchWeb():
 	website = urllib.urlopen(musichttp)
 	xmldoc = minidom.parse(website)
 	#Get list of artists
-	itemlist = xmldoc.getElementsByTagName('Directory') 
+	itemlist = xmldoc.getElementsByTagName('Directory')
 	for item in itemlist:
 		artistname= item.attributes['title'].value
-		artistname = re.sub(r'[^\x00-\x7F]+',' ', artistname)
+		#artistname = re.sub(r'[^\x00-\x7F]+',' ', artistname)
 		artistname = re.sub(r'\&','and', artistname)
 		musiclib.append(artistname)
 
@@ -139,11 +139,11 @@ def photoSearchWeb():
 		pichttp=url+"/library/sections/"+pictureid+"/all"
 	website = urllib.urlopen(pichttp)
 	xmldoc = minidom.parse(website)
-	itemlist = xmldoc.getElementsByTagName('Directory') 
+	itemlist = xmldoc.getElementsByTagName('Directory')
 	for item in itemlist:
 		albumtitle = item.attributes['title'].value
-		albumtitle = re.sub(r'[^\x00-\x7F]+',' ', albumtitle)
-		albumtitle = re.sub(r'\&','and', albumtitle)		
+		#albumtitle = re.sub(r'[^\x00-\x7F]+',' ', albumtitle)
+		albumtitle = re.sub(r'\&','and', albumtitle)
 		albumlib.append(albumtitle)
 
 tvlib=[]
@@ -159,14 +159,14 @@ def tvShowSearchWeb():
 	if myplexstatus=="enable":
 		tvhttp=url+"/library/sections/"+tvshowid+"/all"+"?X-Plex-Token="+plextoken
 	else:
-		tvhttp=url+"/library/sections/"+tvshowid+"/all"		
+		tvhttp=url+"/library/sections/"+tvshowid+"/all"
 
 	website = urllib.urlopen(tvhttp)
 	xmldoc = minidom.parse(website)
-	itemlist = xmldoc.getElementsByTagName('Directory') 
+	itemlist = xmldoc.getElementsByTagName('Directory')
 	for item in itemlist:
 		tvtitle = item.attributes['title'].value
-		tvtitle = re.sub(r'[^\x00-\x7F]+',' ', tvtitle)
+		#tvtitle = re.sub(r'[^\x00-\x7F]+',' ', tvtitle)
 		tvtitle = re.sub(r'\&','and', tvtitle)
 		tvlib.append(tvtitle)
 
@@ -178,7 +178,7 @@ if myplexstatus=="enable" and plextoken=="":
 if tvactive=="enable":
 	tvShowSearchWeb()
 if movieactive=="enable":
-	movieSearchWeb()		
+	movieSearchWeb()
 if pictureactive=="enable":
 	photoSearchWeb()
 if musicactive=="enable":
@@ -188,13 +188,13 @@ if musicactive=="enable":
 class index:
 	def __init__(self):
 		self.render = web.template.render('templates')
- 
+
 	def GET(self):
 		return self.render.index(movielib,moviewanted,tvlib,tvwanted,musiclib,musicwanted,albumlib,albumwanted,url)
 
 	def POST(self):
 		data = web.data()
-		return data	
+		return data
 class force:
 	def GET(self):
 		data = web.input()
@@ -220,7 +220,7 @@ class sync:
 	def GET(self):
 		data = web.input()
 		contype = data['type']
-		content = data['content']
+		content = data['content'].encode('utf8')
 		if contype=="tvshow":
 			tvopen = open(tvfile,"a")
 			tvread = tvopen.write(content+"\n")
@@ -250,7 +250,7 @@ class delete:
 	def GET(self):
 		data = web.input()
 		contype = data['type']
-		content = data['content']
+		content = data['content'].encode('utf8')
 		if contype=="tvshow":
 			tvopen = open(tvfile,"r")
 			tvread = tvopen.read()

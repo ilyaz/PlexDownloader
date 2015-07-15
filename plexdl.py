@@ -190,7 +190,7 @@ class MovieDownloader(object):
         failedItems = 0
         for item in itemlist:
             title = item.attributes['title'].value
-            title = re.sub(r'[^\x00-\x7F]+',' ', title)
+            #title = re.sub(r'[^\x00-\x7F]+',' ', title)
             title = re.sub(r'\&','and', title)
             itemkey = item.attributes['key'].value
             try:
@@ -211,7 +211,8 @@ class MovieDownloader(object):
                     if verbose: print title + " ("+year+") is watched... skipping!"
                     continue
             itemname = title + " ("+year+")"
-            if (itemname in wantedlist) or (self.sync=="enable"):
+            newname =itemname.encode('utf8')
+            if (newname in wantedlist) or (self.sync=="enable"):
                 try:
                     parts = getMediaContainerParts(itemkey)
                     if not parts or len(parts) == 0: continue
@@ -337,11 +338,12 @@ class TvDownloader(object):
         removedItems = 0
         for item in itemlist:
             title = item.attributes['title'].value
-            title = re.sub(r'[^\x00-\x7F]+',' ', title)
+            #title = re.sub(r'[^\x00-\x7F]+',' ', title)
             title = re.sub(r'\&','and', title)
             itemkey = item.attributes['key'].value
             #safeitemname = getFilesystemSafeName(title)
-            if (title in wantedlist) or (self.sync =="enable"):
+            newname =title.encode('utf8')
+            if (newname in wantedlist) or (self.sync =="enable"):
                 print title + " Found in Wanted List"
                 xmlseason = minidom.parse(urllib.urlopen(constructPlexUrl(itemkey)))
                 seasonlist = xmlseason.getElementsByTagName('Directory')
@@ -572,10 +574,11 @@ class MusicDownloader(object):
         failedItems = 0
         for item in itemlist:
             title = item.attributes['title'].value
-            title = re.sub(r'[^\x00-\x7F]+',' ', title)
+            #title = re.sub(r'[^\x00-\x7F]+',' ', title)
             title = re.sub(r'\&','and', title)
             itemkey = item.attributes['key'].value
-            if (title in wantedlist) or (self.sync =="enable"):
+            newname=title.encode('utf8')
+            if (newname in wantedlist) or (self.sync =="enable"):
                 try:
                     print title + " Found in Wanted List"
                     xmlseason = minidom.parse(urllib.urlopen(constructPlexUrl(itemkey)))
@@ -859,11 +862,12 @@ def photoSearch():
     print str(len(itemlist)) + " Total Albums Found"
     for item in itemlist:
         albumtitle = item.attributes['title'].value
-        albumtitle = re.sub(r'[^\x00-\x7F]+',' ', albumtitle)
+        #albumtitle = re.sub(r'[^\x00-\x7F]+',' ', albumtitle)
         albumtitle = re.sub(r'\&','and', albumtitle)
         albumkey = item.attributes['key'].value
         #checks if album is in your wanted list or if full sync is enabled
-        if (albumtitle in picturelist) or (picturesync=="enable") :
+        newname = albumtitle.encode('utf8')
+        if (newname in picturelist) or (picturesync=="enable") :
             if myplexstatus=="enable":
                 albumhttp=url+albumkey+"?X-Plex-Token="+plextoken
             else:
