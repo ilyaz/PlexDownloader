@@ -200,7 +200,7 @@ class MovieDownloader(object):
         failedItems = 0
         for item in itemlist:
             title = geta(item, 'title')
-            title = re.sub(r'[^\x00-\x7F]+',' ', title)
+            #title = re.sub(r'[^\x00-\x7F]+',' ', title)
             title = re.sub(r'\&','and', title)
             title = title.strip()
             itemkey = geta(item, 'key')
@@ -351,7 +351,7 @@ class TvDownloader(object):
         removedItems = 0
         for item in itemlist:
             title = geta(item, 'title')
-            title = re.sub(r'[^\x00-\x7F]+',' ', title)
+            #title = re.sub(r'[^\x00-\x7F]+',' ', title)
             title = re.sub(r'\&','and', title)
             title = title.strip()
             itemkey = geta(item, 'key')
@@ -611,7 +611,7 @@ class MusicDownloader(object):
         failedItems = 0
         for item in itemlist:
             title = geta(item, 'title')
-            title = re.sub(r'[^\x00-\x7F]+',' ', title)
+            #title = re.sub(r'[^\x00-\x7F]+',' ', title)
             title = re.sub(r'\&','and', title)
             title = title.strip()
             itemkey = geta(item, 'key')
@@ -934,7 +934,7 @@ def photoSearch():
     print unicode(len(itemlist)) + " Total Albums Found"
     for item in itemlist:
         albumtitle = geta(item, 'title')
-        albumtitle = re.sub(r'[^\x00-\x7F]+',' ', albumtitle)
+        #albumtitle = re.sub(r'[^\x00-\x7F]+',' ', albumtitle)
         albumtitle = re.sub(r'\&','and', albumtitle)
         albumtitle = albumtitle.strip()
         albumkey = geta(item, 'key')
