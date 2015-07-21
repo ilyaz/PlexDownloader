@@ -60,7 +60,7 @@ if webstatus=="enable":
     subprocess.Popen(["python", "webui.py", webport])
 
 print "Starting Plex Scraper..."
-subprocess.Popen(["python", "scrape.py"])
+##subprocess.Popen(["python", "scrape.py"])
 
 sleepTime = parser.get('general', 'sleeptime')
 sleepTime = int(sleepTime)
@@ -148,7 +148,8 @@ debug_outputxml = False     #output relevant XML when exceptions occur
 debug_pretenddld = False     #set to true to fake downloading.  connects to Plex but doesn't save the file.
 debug_pretendremove = False    #set to true to fake removing files
 debug_plexurl = False        #set to true to output plex URL  (caution - will output Plex token)
-verbose = 0
+minimum_to_watch_to_be_considerd_unwatched = 0.90        #minimum % to have watched an episode otherwise will be marked as unwatched todo: configurable
+verbose = 1
 
 plextoken=""
 
@@ -379,7 +380,7 @@ class TvDownloader(object):
                     numEpisodes = 2  #number of episodes to retain.  todo: make this configurable
                     #shrink to just last N episodes.
                     episodelist = sorted(episodelist, key = lambda x: (int(geta(x,'seasonIndex')), int(geta(x,'index'))))[0-numEpisodes:]
-                if verbose: print "Syncing %d episodes for %s" %(len(episodelist), title)
+                if verbose: print "    Syncing %d episodes for %s" %(len(episodelist), title)
                 for counter, episode in enumerate(episodelist):
                     try:
                         episodekey = geta(episode, u'key')
@@ -387,18 +388,35 @@ class TvDownloader(object):
                         episodetitle = geta(episode, u'title')
                         episodetitle = episodetitle.strip()
                         seasonindex = geta(episode, 'seasonIndex')  #Added during list creation
+                        duration = long(geta(episode, 'duration'))
+                        this_minimum_to_watch = long(duration * minimum_to_watch_to_be_considerd_unwatched)
+                        if verbose: print "Analyzing Episode " + episodeindex
+                        ## if debug_outputxml: print episode.toprettyxml()
+                        ## if verbose: print "    Duration " + str(duration)
+                        ## if verbose: print "    Minimum to watch " + str(this_minimum_to_watch)
                         try:
                             #checks to see if episode has been viewed node is available
-                            viewcount = geta(episode, 'lastViewedAt')
+                            viewcount = long(geta(episode, 'lastViewedAt'))
                         except Exception as e:
                             #if fails to find lastViewedAt will notify script that tv is unwatched
                             viewcount = "unwatched"
+                        try:
+                            viewOffset = long(geta(episode, 'viewOffset'))
+                            if viewOffset < this_minimum_to_watch: viewcount = "partial"
+                        except Exception as e:
+                            #if fails to find viewOffset will notify script that tv is unwatched
+                            viewOffset = 0
+                        ## if verbose: print "    viewOffset " + str(viewOffset)
+                        ## if verbose: print "    viewcount: " + str(viewcount)
                         #checks if user wants unwatched only
                         if self.unwatched=="enable":
                             if viewcount=="unwatched":
-                                if verbose: print "Episode is unwatched..."
+                                if verbose: print "    Episode is unwatched..."
+                            elif viewcount=="partial":
+                                if verbose: print ("    Episode is {:.0%} < {:.0%} watched... INCLUDING ! ").format(float(viewOffset)/float(duration),minimum_to_watch_to_be_considerd_unwatched)
                             else:
-                                if verbose: print "Episode is watched... skipping!"
+                                if verbose: print "    Episode is watched... skipping!"
+                                #todo: remove files that are watched when tvtype = all
                                 continue
                         parts = getMediaContainerParts(episodekey)
                         if parts:
@@ -409,7 +427,7 @@ class TvDownloader(object):
                                 syncedItems += 1
                     except Exception as e:
                         failedItems += 1
-                        print "Error syncing episode.  Skipping..."
+                        print "    Error syncing episode.  Skipping..."
                         print(traceback.format_exc())
                         if debug_outputxml: print episode.toprettyxml(encoding='utf-8')
                 #remove old episodes
