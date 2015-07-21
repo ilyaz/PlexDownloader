@@ -60,7 +60,7 @@ if webstatus=="enable":
     subprocess.Popen(["python", "webui.py", webport])
 
 print "Starting Plex Scraper..."
-##subprocess.Popen(["python", "scrape.py"])
+subprocess.Popen(["python", "scrape.py"])
 
 sleepTime = parser.get('general', 'sleeptime')
 sleepTime = int(sleepTime)
