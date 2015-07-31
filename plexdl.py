@@ -332,6 +332,7 @@ class TvDownloader(object):
         self.delete = parser.get(cfg, 'autodelete')
         self.unwatched = parser.get(cfg,'unwatched')
         self.structure = parser.get(cfg,'folderstructure')
+        self.exactnamematch = False   #for server mode, filenames must match exactly (except for extension)
         #print "MovieDownloader %d - success" % num
         print "Syncing TV to %s" % (self.location)
 
@@ -453,7 +454,7 @@ class TvDownloader(object):
         if self.structure == "server":
             #find dirs to check first to avoid recursion
             folder = os.path.join(self.location, getFilesystemSafeName(title))
-            pattern = '(?ix)season\s(\d{1,3})'
+            pattern = '(?ix)season\s*(\d{1,3})'
             r = re.compile(pattern)
             if os.path.isdir(folder):
                 for f in os.listdir(folder):
@@ -506,7 +507,9 @@ class TvDownloader(object):
     def exists(self,itemname,season,episode,part):
         season=int(season)
         episode=int(episode)
-        if self.structure == "server":
+        dirs = []
+
+        if self.exactnamematch:
             #in server mode, video filename must match exactly except for extension.
             #subtitles must match including extension
             filepath = self.basefilepath(itemname,season,episode,part)
@@ -524,9 +527,23 @@ class TvDownloader(object):
                             #print "Located " + f + " but is invalid extension"
                             pass
             return None
-        #Walk folder and look for files matching the 1x1,s2e2,etc format
-        dirs = []
+        elif self.structure == "server":
+            #Check in all subfolders.  append all the first level sub folders.
+            folder = os.path.join(self.location,getFilesystemSafeName(itemname))
+            pattern = '(?ix)season\s*(\d{1,3})'
+            r = re.compile(pattern)
+            if os.path.isdir(folder):
+                for f in os.listdir(folder):
+                    result = r.search(f)
+                    if result and os.path.isdir(os.path.join(folder,f)):
+                        dirs.append(os.path.join(folder, f))
+                    elif f.lower() == "specials" and os.path.isdir(os.path.join(folder,f)):
+                        dirs.append(os.path.join(folder, f))  #always append Specials folder since it's season 0
+
+        else:
+            #just look in root folder
         dirs.append(os.path.join(self.location,getFilesystemSafeName(itemname)))
+        #Walk folder and look for files matching the 1x1,s2e2,etc format
         #also handle s1e01-e04 format
         pattern = '(?ix)(?:s)?(\d{1,3})(?:e|x)(\d{1,3})(?:-[ex](\d{1,3}))?(?:[\s\.\-,_])'
         r = re.compile(pattern)
