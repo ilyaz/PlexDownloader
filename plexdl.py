@@ -177,7 +177,7 @@ class MovieDownloader(object):
 
         self.plexid = parser.get(cfg, 'plexid')
         self.location = parser.get(cfg, 'movielocation')
-        self.configfile = parser.get(cfg, 'moviefile')
+        self.itemfile = parser.get(cfg, 'moviefile')
         self.sync = parser.get(cfg, 'fullsync')
         self.active = parser.get(cfg, 'active')
         self.unwatched = parser.get(cfg,'unwatched')
@@ -190,10 +190,14 @@ class MovieDownloader(object):
         return False
 
     def search(self):
-        fp = open(self.configfile,"r")
-        wantedlist= fp.read().split("\n")
-        fp.close()
-        print unicode(len(wantedlist)-1) + " Movies Found in Your Wanted List..."
+        if not os.path.exists(self.location) or not os.path.isdir(self.location):
+            print "Error: Path not located.  Create '%s' first." % (self.location)
+            return
+        wantedlist, skiplist = ReadItemFile(self.itemfile)
+        if len(wantedlist) > 0:
+            print unicode(len(wantedlist)) + " Movies Found in Your Wanted List..."
+        if len(skiplist) > 0:
+            print unicode(len(skiplist)) + " Movies Found in Your Skip List..."
         xmldoc = minidom.parse(urllib.urlopen(constructPlexUrl("/library/sections/"+unicode(self.plexid)+"/all")))
         itemlist = xmldoc.getElementsByTagName('Video')
         print unicode(len(itemlist)) + " Total Movies Found"
@@ -223,7 +227,7 @@ class MovieDownloader(object):
                     if verbose: print title + " ("+year+") is watched... skipping!"
                     continue
             itemname = title + " ("+year+")"
-            if (itemname in wantedlist) or (self.sync=="enable"):
+            if (itemname not in skiplist) and ((itemname in wantedlist) or (self.sync =="enable")):
                 try:
                     parts = getMediaContainerParts(itemkey)
                     if parts:
@@ -324,7 +328,7 @@ class TvDownloader(object):
         self.quality = parser.get(tc,'videoquality')
 
         self.plexid = parser.get(cfg, 'plexid')
-        self.configfile = parser.get(cfg, 'tvfile')
+        self.itemfile = parser.get(cfg, 'tvfile')
         self.type = parser.get(cfg, 'tvtype')
         self.location = parser.get(cfg, 'tvlocation')
         self.sync = parser.get(cfg, 'fullsync')
@@ -332,6 +336,7 @@ class TvDownloader(object):
         self.delete = parser.get(cfg, 'autodelete')
         self.unwatched = parser.get(cfg,'unwatched')
         self.structure = parser.get(cfg,'folderstructure')
+        self.exactnamematch = False   #for server mode, filenames must match exactly (except for extension)
         #print "MovieDownloader %d - success" % num
         print "Syncing TV to %s" % (self.location)
 
@@ -340,10 +345,14 @@ class TvDownloader(object):
         return False
 
     def search(self):
-        fp = open(self.configfile,"r")
-        wantedlist= fp.read().split("\n")
-        fp.close()
-        print unicode(len(wantedlist)-1) + " TV Shows Found in Your Wanted List..."
+        if not os.path.exists(self.location) or not os.path.isdir(self.location):
+            print "Error: Path not located.  Create '%s' first." % (self.location)
+            return
+        wantedlist, skiplist = ReadItemFile(self.itemfile)
+        if len(wantedlist) > 0:
+            print unicode(len(wantedlist)) + " TV Shows Found in Your Wanted List..."
+        if len(skiplist) > 0:
+            print unicode(len(skiplist)) + " TV Shows Found in Your Skip List..."
         xmldoc = minidom.parse(urllib.urlopen(constructPlexUrl("/library/sections/"+self.plexid+"/all")))
         itemlist = xmldoc.getElementsByTagName('Directory')
         print unicode(len(itemlist)) + " Total TV Shows Found"
@@ -357,7 +366,7 @@ class TvDownloader(object):
             title = title.strip()
             itemkey = geta(item, 'key')
             #safeitemname = getFilesystemSafeName(title)
-            if (title in wantedlist) or (self.sync =="enable"):
+            if (title not in skiplist) and ((title in wantedlist) or (self.sync =="enable")):
                 if verbose: print title + " Found in Wanted List"
                 xmlseason = minidom.parse(urllib.urlopen(constructPlexUrl(itemkey)))
                 seasonlist = xmlseason.getElementsByTagName('Directory')
@@ -453,7 +462,7 @@ class TvDownloader(object):
         if self.structure == "server":
             #find dirs to check first to avoid recursion
             folder = os.path.join(self.location, getFilesystemSafeName(title))
-            pattern = '(?ix)season\s(\d{1,3})'
+            pattern = '(?ix)season\s*(\d{1,3})'
             r = re.compile(pattern)
             if os.path.isdir(folder):
                 for f in os.listdir(folder):
@@ -506,7 +515,9 @@ class TvDownloader(object):
     def exists(self,itemname,season,episode,part):
         season=int(season)
         episode=int(episode)
-        if self.structure == "server":
+        dirs = []
+
+        if self.exactnamematch:
             #in server mode, video filename must match exactly except for extension.
             #subtitles must match including extension
             filepath = self.basefilepath(itemname,season,episode,part)
@@ -524,9 +535,20 @@ class TvDownloader(object):
                             #print "Located " + f + " but is invalid extension"
                             pass
             return None
-        #Walk folder and look for files matching the 1x1,s2e2,etc format
-        dirs = []
+        elif self.structure == "server":
+            #Check in all subfolders.  append all the first level sub folders.  We check every folder, every time.
+            folder = os.path.join(self.location,getFilesystemSafeName(itemname))
+            pattern = '(?ix)season\s*(\d{1,3})'
+            r = re.compile(pattern)
+            if os.path.isdir(folder):
+                for f in os.listdir(folder):
+                    result = r.search(f)
+                    if result and os.path.isdir(os.path.join(folder,f)):
+                        dirs.append(os.path.join(folder, f))
+                    elif f.lower() == "specials" and os.path.isdir(os.path.join(folder,f)):
+                        dirs.append(os.path.join(folder, f))  #always append Specials folder since it's season 0
         dirs.append(os.path.join(self.location,getFilesystemSafeName(itemname)))
+        #Walk folder and look for files matching the 1x1,s2e2,etc format
         #also handle s1e01-e04 format
         pattern = '(?ix)(?:s)?(\d{1,3})(?:e|x)(\d{1,3})(?:-[ex](\d{1,3}))?(?:[\s\.\-,_])'
         r = re.compile(pattern)
@@ -608,7 +630,7 @@ class MusicDownloader(object):
 
         self.plexid = parser.get(cfg, 'plexid')
         self.location = parser.get(cfg, 'musiclocation')
-        self.configfile = parser.get(cfg, 'musicfile')
+        self.itemfile = parser.get(cfg, 'musicfile')
         self.sync = parser.get(cfg, 'fullsync')
         self.active = parser.get(cfg, 'active')
         print "Syncing Music to %s" % (self.location)
@@ -618,10 +640,14 @@ class MusicDownloader(object):
         return False
 
     def search(self):
-        fp = open(self.configfile,"r")
-        wantedlist= fp.read().split("\n")
-        fp.close()
-        print unicode(len(wantedlist)-1) + " Artists Shows Found in Your Wanted List..."
+        if not os.path.exists(self.location) or not os.path.isdir(self.location):
+            print "Error: Path not located.  Create '%s' first." % (self.location)
+            return
+        wantedlist, skiplist = ReadItemFile(self.itemfile)
+        if len(wantedlist) > 0:
+            print unicode(len(wantedlist)) + " Artists Found in Your Wanted List..."
+        if len(skiplist) > 0:
+            print unicode(len(skiplist)) + " Artists Found in Your Skip List..."
         xmldoc = minidom.parse(urllib.urlopen(constructPlexUrl("/library/sections/"+self.plexid+"/all")))
         itemlist = xmldoc.getElementsByTagName('Directory')
         print unicode(len(itemlist)) + " Total TV Artists Found"
@@ -633,7 +659,7 @@ class MusicDownloader(object):
             title = re.sub(r'\&','and', title)
             title = title.strip()
             itemkey = geta(item, 'key')
-            if (title in wantedlist) or (self.sync =="enable"):
+            if (title not in skiplist) and ((title in wantedlist) or (self.sync =="enable")):
                 try:
                     if verbose: print title + " Found in Wanted List"
                     xmlseason = minidom.parse(urllib.urlopen(constructPlexUrl(itemkey)))
@@ -742,6 +768,29 @@ def isValidSubtitleFile(filename):
         return False
     except Exception as e:
         return False
+
+#Itemfile is list of shows to include/exclude.  Exclude by adding a "!" at beginning of show name.
+#Any blank line or line beginning with a hash mark are ignored.
+def ReadItemFile(itemfile):
+    list = []
+    try:
+        fp = open(itemfile,"r")
+        list = fp.read().split("\n")
+        fp.close()
+    except Exception as e:
+        pass
+    wantedlist = []
+    skiplist = []
+    if list:
+        for l in list:
+            l = l.strip()
+            if l.startswith('!'):
+                skiplist.append(l[1:])
+            elif l.startswith('#'):  #allow a commment
+                pass
+            elif l:  #skip blank lines
+                wantedlist.append(l)
+    return (wantedlist,skiplist)
 
 def getTranscodeVideoURL(plexkey,quality,width,height,bitrate,session,token,partindex=0):
     clientuid = uuid.uuid4()
